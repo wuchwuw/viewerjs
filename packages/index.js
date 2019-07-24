@@ -1,5 +1,3 @@
-import Viewer from './viewer'
-
-Viewer.__version__ = '1.0.0' // webapack
+import Viewer from './core/viewer'
 
 export default Viewer
