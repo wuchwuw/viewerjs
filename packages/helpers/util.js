@@ -13,8 +13,11 @@ export function isNumber (value) {
 export function forEach (value, callback) {
   if (value && isFunction(callback)) {
     if (Array.isArray(value) && isNumber(value.length)) {
-      if (callback.call(value, value[i], i, value) === false) {
-        break
+      let length = value.length
+      for (let i = 0; i < length; i++) {
+        if (callback.call(value, value[i], i, value) === false) {
+          break
+        }
       }
     } else if (isObject(value)) {
       Object.keys(value).forEach(key => {
