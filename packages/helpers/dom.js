@@ -26,5 +26,7 @@ export function removeClass (element, className) {
 }
 
 export function setStyle (element, styles) {
-
+  Object.keys(styles).forEach(key => {
+    element.style[key] = styles[key]
+  })
 }

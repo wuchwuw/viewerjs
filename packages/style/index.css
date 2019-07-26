@@ -4,7 +4,7 @@
   top: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, .8);
+  background: rgba(0, 0, 0, .9);
   z-index: 999;
   display: none;
 }
@@ -19,4 +19,8 @@
 
 .viewer-hide {
   display: none;
+}
+
+.viewer-image-wrap {
+  position: absolute;
 }
