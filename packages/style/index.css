@@ -23,4 +23,5 @@
 
 .viewer-image-wrap {
   position: absolute;
+  background: rgba(0, 0, 0, .9);
 }

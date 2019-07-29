@@ -1,6 +1,6 @@
 export default (
   `
-    <div class="viewer-container" touch-action="none">
+    <div class="viewer-container">
       <div class="viewer-wrap"></div>
     </div>
   `

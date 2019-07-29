@@ -30,3 +30,11 @@ export function setStyle (element, styles) {
     element.style[key] = styles[key]
   })
 }
+
+export function addEventListener (element, type, listener, options = {}) {
+  element.addEventListener(type, listener, options)
+}
+
+export function removeEventListener (element, type, listener, options = {}) {
+  element.removeEventListener(type, listener, options)
+}

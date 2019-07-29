@@ -2,7 +2,7 @@ import { addClass, setStyle } from '../helpers/dom'
 
 export default class ViewerImage {
   constructor (image, index, viewer) {
-    const { width: viewerWidth, height: viewerHeight, el } = viewer
+    const { width: viewerWidth, height: viewerHeight } = viewer
     // init render 
     this.naturalWidth = image.naturalWidth
     this.naturalHeight = image.naturalHeight

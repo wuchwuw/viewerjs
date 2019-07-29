@@ -2,7 +2,9 @@ import ViewerImage from './viewer-image'
 import TEMPLATE from '../shared/template'
 import {
   addClass,
-  removeClass
+  setStyle,
+  removeClass,
+  addEventListener
 } from '../helpers/dom'
 
 export default class Viewer {
@@ -14,6 +16,7 @@ export default class Viewer {
       height: 0,
       width: 0
     }
+    this.touch = {}
     this.initViewer()
     this.initImage(source)
   }
@@ -37,7 +40,9 @@ export default class Viewer {
       width: window.innerWidth,
       height: window.innerHeight
     }
-    console.log(this.viewer)
+    addEventListener(this.viewer.el, 'touchstart', this.onTouchStart.bind(this))
+    addEventListener(this.viewer.el, 'touchmove', this.onTouchMove.bind(this))
+    addEventListener(this.viewer.el, 'touchend', this.onTouchEnd)
   }
 
   show () {
@@ -49,5 +54,25 @@ export default class Viewer {
     removeClass(this.container, 'viewer-open')
     removeClass(this.viewer.el, 'viewer-show')
     addClass(this.viewer.el, 'viewer-close')
+  }
+
+  onTouchStart (e) {
+    const touch = e.targetTouches
+    if (touch && touch.length === 1) {
+      this.touch = {
+        pageX: touch[0].pageX,
+        pageY: touch[0].pageY,
+        x: 1
+      }
+    }
+  }
+
+  onTouchMove (e) {
+    const touch = e.targetTouches
+    let diff = this.touch.pageX - touch[0].pageX
+    this.touch.x += 0.01
+    setStyle(this.viewer.el, {
+      transform: `translate3d(${diff * 1 / this.touch.x}px, 0, 0)`
+    })
   }
 }
