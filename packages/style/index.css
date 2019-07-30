@@ -4,9 +4,15 @@
   top: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, .9);
+  background: rgba(0, 0, 0);
   z-index: 999;
   display: none;
+}
+
+.viewer-wrap {
+  height: 100%;
+  font-size: 0;
+  background: rgba(0, 0, 0, .9);
 }
 
 .viewer-open {
@@ -24,4 +30,8 @@
 .viewer-image-wrap {
   position: absolute;
   background: rgba(0, 0, 0, .9);
+}
+
+.viewer-header {
+  position: absolute;
 }

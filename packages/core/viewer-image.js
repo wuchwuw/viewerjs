@@ -43,7 +43,6 @@ export default class ViewerImage {
       transform: `translate3d(${this.left}px, ${this.right}px, 0)`
     })
     wrap.appendChild(img)
-    let container = viewer.el.querySelector('.viewer-wrap')
-    container.appendChild(wrap)
+    viewer.el.appendChild(wrap)
   }
 }
