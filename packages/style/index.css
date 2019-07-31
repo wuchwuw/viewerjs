@@ -35,3 +35,7 @@
 .viewer-header {
   position: absolute;
 }
+
+.viewer-image-zoom {
+  transition: all .3s;
+}

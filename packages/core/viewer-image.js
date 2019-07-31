@@ -15,6 +15,7 @@ export default class ViewerImage {
     this.width = viewerWidth
     this.height = viewerHeight
     this.index = index
+    this.el = null
 
     if (image.naturalHeight * this.radio > viewerWidth) {
       this.height = viewerWidth / this.radio
@@ -26,7 +27,7 @@ export default class ViewerImage {
     this.height = Math.min(this.height, viewerHeight)
 
     this.left = (viewerWidth - this.width) / 2
-    this.right = (viewerHeight - this.height) / 2
+    this.top = (viewerHeight - this.height) / 2
 
     this.renderImage(viewer, index)
   }
@@ -44,11 +45,19 @@ export default class ViewerImage {
     setStyle(img, {
       width: this.width + 'px',
       height: this.height + 'px',
-      transform: `translate3d(${this.left}px, ${this.right}px, 0)`
+      transform: `translate3d(${this.left}px, ${this.top}px, 0)`
     })
     wrap.appendChild(img)
     viewer.el.appendChild(wrap)
+    this.el = img
+    // addEventListener(img, 'click', this.onClick.bind(this))
+  }
 
-    addEventListener(img, 'click', this.onClick.bind(this))
+  reset () {
+    setStyle(this.el, {
+      width: this.width + 'px',
+      height: this.height + 'px',
+      transform: `translate3d(${this.left}px, ${this.top}px, 0)`
+    })
   }
 }

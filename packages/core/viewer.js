@@ -12,10 +12,14 @@ export default class Viewer {
     this.images = []
     this.parent = document.body
     this.container = null
+    this.zooming = false
+    this.moving = false
+    this.dbClickTimeout = null
+    this.lastClickTime = 0
     this.viewer = {
       el: null,
-      height: 0,
-      width: 0,
+      height: window.innerHeight,
+      width: window.innerWidth,
       contentWidth: 0
     }
     this.touch = {
@@ -24,6 +28,11 @@ export default class Viewer {
       diff: 0,
       currentLeft: 0,
       currentIndex: 0
+    }
+    this.imageZoom = {
+      left: 0,
+      top: 0,
+      diff: 0
     }
     this.initViewer()
     this.initImage(source)
@@ -38,6 +47,7 @@ export default class Viewer {
       this.images.push(new ViewerImage(image, index, this.viewer))
     })
     this.viewer.contentWidth = this.viewer.width * this.images.length
+    this.image = this.images[this.touch.currentIndex]
   }
 
   initViewer () {
@@ -46,11 +56,7 @@ export default class Viewer {
     container.innerHTML = TEMPLATE
     this.parent.appendChild(container)
     this.container = container
-    this.viewer = {
-      el: container.querySelector('.viewer-wrap'),
-      width: window.innerWidth,
-      height: window.innerHeight
-    }
+    this.viewer.el = container.querySelector('.viewer-wrap')
     addEventListener(this.viewer.el, 'touchstart', this.onTouchStart.bind(this))
     addEventListener(this.viewer.el, 'touchmove', this.onTouchMove.bind(this))
     addEventListener(this.viewer.el, 'touchend', this.onTouchEnd.bind(this))
@@ -69,33 +75,90 @@ export default class Viewer {
   }
 
   onTouchStart (e) {
+    if (this.zooming && e.target === this.image.el) {
+      this.handleImageZoomStart(e)
+    } else {
+      this.handleWrapPointerStart(e)
+    }
+  }
+
+  onTouchMove (e) {
+    if (this.zooming && e.target === this.image.el) {
+      this.handleImageZoomMove(e)
+    } else {
+      this.handleWrapPointerMove(e)
+    }
+  }
+
+  onTouchEnd (e) {
+    if (this.zooming && e.target === this.image.el) {
+      this.handleImageZoomEnd(e)
+    } else {
+      this.handleWrapPointerEnd(e)
+    }
+  }
+
+  onClick (e) {
+    if (e.target === this.image.el) {
+      let now = Date.now()
+      if (now - this.lastClickTime < 400) {
+        if (this.moving) return
+        if (this.zooming) {
+          this.zoom(this.image.oldRatio)
+          this.zooming = false
+        } else {
+          this.zoom(1)
+          this.zooming = true
+        }
+        // removeClass(this.image.el, 'viewer-image-zoom')
+      }
+      this.lastClickTime = now
+    }
+  }
+
+  zoom (ratio) {
+    addClass(this.image.el, 'viewer-image-zoom')
+    const {
+      naturalWidth,
+      naturalHeight,
+      width,
+      height,
+      top,
+      left
+    } = this.image
+
+    const newWidth = naturalWidth * ratio
+    const newHeight = naturalHeight * ratio
+    const offsetWidth = newWidth - width
+    const offsetHeight = newHeight - height
+    const oldRatio = width / naturalWidth
+
+    this.image.width = newWidth
+    this.image.height = newHeight
+    this.image.left -= offsetWidth / 2
+    this.image.top -= offsetHeight / 2
+    this.image.oldRatio = oldRatio
+    this.image.reset()
+  }
+
+  handleWrapPointerStart (e) {
     const touch = e.targetTouches
     if (touch && touch.length === 1) {
       this.touch.pageX = touch[0].pageX
       this.touch.pageY = touch[0].pageY
     }
   }
-
-  onTouchMove (e) {
+  handleWrapPointerMove (e) {
     const touch = e.targetTouches
     const { currentLeft } = this.touch
     let diff = touch[0].pageX - this.touch.pageX
-    let left = touch.diff + touch.currentLeft
-    let absLeft = Math.abs(left)
-    let t = left
-    if (left > 100) {
-      t = 100
-    } else if (absLeft > contentWidth - transformWidth) {
-      t = -contentWidth + transformWidth 
-    }
     setStyle(this.viewer.el, {
-      transform: `translate3d(${left}px, 0, 0)`,
+      transform: `translate3d(${currentLeft + diff}px, 0, 0)`,
       transitionDuration: '0ms'
     })
     this.touch.diff = diff
   }
-
-  onTouchEnd () {
+  handleWrapPointerEnd (e) {
     const { touch } = this
     const { el, width: transformWidth, contentWidth } = this.viewer
     let left = touch.diff + touch.currentLeft
@@ -132,11 +195,19 @@ export default class Viewer {
       } else if (touch.currentLeft - left === -transformWidth) {
         touch.currentIndex--
       }
-      // if (Math.abs(currentLeft - left) === transformWidth) {
-      //   this.registeredImageEvent(this.dom.shared.currentIndex)
-      // }
+      this.image = this.images[touch.currentIndex]
       touch.currentLeft = left
     }
     touch.diff = 0
   }
+  handleImageZoomStart (e) {
+    const touch = e.targetTouches
+    if (touch && touch.length === 1) {
+      this.imageZoom.left = touch[0].pageX
+      this.imageZoom.top = touch[0].pageY
+    }
+  }
+  handleImageZoomMove (e) {}
+  handleImageZoomEnd (e) {}
+  
 }
