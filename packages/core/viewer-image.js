@@ -1,4 +1,8 @@
-import { addClass, setStyle } from '../helpers/dom'
+import { 
+  addClass,
+  setStyle,
+  addEventListener
+} from '../helpers/dom'
 
 export default class ViewerImage {
   constructor (image, index, viewer) {
@@ -18,8 +22,8 @@ export default class ViewerImage {
       this.width = viewerHeight * this.radio
     }
 
-    this.width = Math.min(this.width, viewerWidth * 0.9)
-    this.height = Math.min(this.height, viewerHeight * 0.9)
+    this.width = Math.min(this.width, viewerWidth)
+    this.height = Math.min(this.height, viewerHeight)
 
     this.left = (viewerWidth - this.width) / 2
     this.right = (viewerHeight - this.height) / 2
@@ -44,5 +48,7 @@ export default class ViewerImage {
     })
     wrap.appendChild(img)
     viewer.el.appendChild(wrap)
+
+    addEventListener(img, 'click', this.onClick.bind(this))
   }
 }

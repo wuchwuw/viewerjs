@@ -54,6 +54,7 @@ export default class Viewer {
     addEventListener(this.viewer.el, 'touchstart', this.onTouchStart.bind(this))
     addEventListener(this.viewer.el, 'touchmove', this.onTouchMove.bind(this))
     addEventListener(this.viewer.el, 'touchend', this.onTouchEnd.bind(this))
+    addEventListener(this.viewer.el, 'click', this.onClick.bind(this))
   }
 
   show () {
