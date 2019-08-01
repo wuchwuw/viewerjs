@@ -7,6 +7,10 @@ import {
   addEventListener
 } from '../helpers/dom'
 
+import {
+  getPointersCenter
+} from '../helpers/util'
+
 export default class Viewer {
   constructor (source, options) {
     this.images = []
@@ -32,7 +36,11 @@ export default class Viewer {
     this.imageZoom = {
       left: 0,
       top: 0,
-      diff: 0
+      diffX: 0,
+      diffY: 0,
+      pageX: 0,
+      pageY: 0,
+      pointer: {}
     }
     this.initViewer()
     this.initImage(source)
@@ -75,56 +83,62 @@ export default class Viewer {
   }
 
   onTouchStart (e) {
-    if (this.zooming && e.target === this.image.el) {
-      this.handleImageZoomStart(e)
-    } else {
+    if (!this.zooming) {
       this.handleWrapPointerStart(e)
+    } else if (e.target === this.image.el) {
+      this.handleImageZoomStart(e)
     }
   }
 
   onTouchMove (e) {
-    if (this.zooming && e.target === this.image.el) {
-      this.handleImageZoomMove(e)
-    } else {
+    if (!this.zooming) {
       this.handleWrapPointerMove(e)
+    } else if (e.target === this.image.el) {
+      this.handleImageZoomMove(e)
     }
   }
 
   onTouchEnd (e) {
-    if (this.zooming && e.target === this.image.el) {
-      this.handleImageZoomEnd(e)
-    } else {
+    if (!this.zooming) {
       this.handleWrapPointerEnd(e)
+    } else if (e.target === this.image.el) {
+      this.handleImageZoomEnd(e)
     }
   }
 
   onClick (e) {
+    // ios div pointer
+
+    //todo handle pointer
+    let pointer = [{
+      pageX: e.pageX,
+      pageY: e.pageY
+    }]
     if (e.target === this.image.el) {
       let now = Date.now()
       if (now - this.lastClickTime < 400) {
         if (this.moving) return
         if (this.zooming) {
-          this.zoom(this.image.oldRatio)
+          this.zoom(this.image.oldRatio, this.imageZoom.pointer)
           this.zooming = false
         } else {
-          this.zoom(1)
+          this.zoom(2, (this.imageZoom.pointer = pointer))
           this.zooming = true
         }
-        // removeClass(this.image.el, 'viewer-image-zoom')
       }
       this.lastClickTime = now
     }
   }
 
-  zoom (ratio) {
+  zoom (ratio, pointers) {
     addClass(this.image.el, 'viewer-image-zoom')
     const {
       naturalWidth,
       naturalHeight,
       width,
       height,
-      top,
-      left
+      left,
+      top
     } = this.image
 
     const newWidth = naturalWidth * ratio
@@ -133,11 +147,22 @@ export default class Viewer {
     const offsetHeight = newHeight - height
     const oldRatio = width / naturalWidth
 
+    if (pointers) {
+      // todo bugfix imageZoom.left image.left
+      const center = getPointersCenter(pointers)
+      this.image.left -= offsetWidth * (center.pageX - left) / width
+      this.image.top -= offsetHeight * (center.pageY - top) / height
+    } else {
+      this.image.left -= offsetWidth / 2
+      this.image.top -= offsetHeight / 2
+    }
+    this.image.oldRatio = oldRatio
     this.image.width = newWidth
     this.image.height = newHeight
-    this.image.left -= offsetWidth / 2
-    this.image.top -= offsetHeight / 2
-    this.image.oldRatio = oldRatio
+    
+    this.imageZoom.left = this.image.left
+    this.imageZoom.top = this.image.top
+
     this.image.reset()
   }
 
@@ -148,6 +173,7 @@ export default class Viewer {
       this.touch.pageY = touch[0].pageY
     }
   }
+
   handleWrapPointerMove (e) {
     const touch = e.targetTouches
     const { currentLeft } = this.touch
@@ -158,6 +184,7 @@ export default class Viewer {
     })
     this.touch.diff = diff
   }
+
   handleWrapPointerEnd (e) {
     const { touch } = this
     const { el, width: transformWidth, contentWidth } = this.viewer
@@ -200,14 +227,82 @@ export default class Viewer {
     }
     touch.diff = 0
   }
+
   handleImageZoomStart (e) {
     const touch = e.targetTouches
     if (touch && touch.length === 1) {
-      this.imageZoom.left = touch[0].pageX
-      this.imageZoom.top = touch[0].pageY
+      this.imageZoom.pageX = touch[0].pageX
+      this.imageZoom.pageY = touch[0].pageY
+
+      // init zoom left,top
+      // this.imageZoom.left = this.image.left
+      // this.imageZoom.top = this.image.top
     }
   }
-  handleImageZoomMove (e) {}
-  handleImageZoomEnd (e) {}
+
+  handleImageZoomMove (e) {
+    const touch = e.targetTouches
+    const {
+      left,
+      top,
+      pageX,
+      pageY
+    } = this.imageZoom
+    let newDiffX = touch[0].pageX - pageX
+    let newDiffY = touch[0].pageY - pageY
+    let newLeft = left + newDiffX
+    let newTop = top + newDiffY
+    setStyle(this.image.el, {
+      transform: `translate3d(${newLeft}px, ${newTop}px, 0)`,
+      transitionDuration: '0ms'
+    })
+    this.imageZoom.diffX = newDiffX
+    this.imageZoom.diffY = newDiffY
+    this.imageZoom.left = newLeft
+    this.imageZoom.top = newTop
+    this.imageZoom.pageX = touch[0].pageX
+    this.imageZoom.pageY = touch[0].pageY
+
+    // this.image.left = newLeft
+    // this.image.top = newTop
+  }
+  handleImageZoomEnd (e) {
+    const {
+      width: viewerWidth,
+      height: viewerHeight
+    } = this.viewer
+    const {
+      width: imageWidth,
+      height: imageHeight,
+      left: imageLeft,
+      top: imageTop
+    } = this.image
+
+    // 移动范围
+    // topMax -> 0 -> topMin
+    // leftMax -> 0 -> leftMin
+    const isWidthOverflow = imageWidth > viewerWidth
+    const isHeightOverflow = imageHeight > viewerHeight
+    const topMax = isHeightOverflow ? (viewerHeight - imageHeight) : imageTop
+    const leftMax = isWidthOverflow ? (viewerWidth - imageWidth) : imageLeft
+    const topMin = isHeightOverflow ? 0 : imageTop
+    const leftMin = isWidthOverflow ? 0 : imageLeft
+
+    const {
+      left: zoomLeft,
+      top: zoomTop
+    } = this.imageZoom
+
+    let newZoomLeft = Math.min(Math.max(zoomLeft, leftMax), leftMin)
+    let newZoomTop = Math.min(Math.max(zoomTop, topMax), topMin)
+
+    setStyle(this.image.el, {
+      transform: `translate3d(${newZoomLeft}px, ${newZoomTop}px, 0)`,
+      transitionDuration: '500ms'
+    })
+
+    this.imageZoom.left = newZoomLeft
+    this.imageZoom.top = newZoomTop
+  }
   
 }

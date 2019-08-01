@@ -26,3 +26,21 @@ export function forEach (value, callback) {
     }
   }
 }
+
+export function getPointersCenter (pointers) {
+  let pageX = 0
+  let pageY = 0
+  let count = pointers.length
+  pointers.forEach(pointer => {
+    pageX += pointer.pageX
+    pageY += pointer.pageY
+  })
+
+  pageX /= count
+  pageY /= count
+
+  return {
+    pageX,
+    pageY
+  }
+}
