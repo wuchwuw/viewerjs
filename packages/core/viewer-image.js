@@ -17,6 +17,10 @@ export default class ViewerImage {
     this.index = index
     this.el = null
 
+    this.zoomData = {
+      
+    }
+
     if (image.naturalHeight * this.radio > viewerWidth) {
       this.height = viewerWidth / this.radio
     } else {
