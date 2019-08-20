@@ -21,6 +21,11 @@
   "bugs": {
     "url": "https://github.com/wuch1995/viewerjs/issues"
   },
+  "config": {
+    "commitizen": {
+      "path": "node_modules/cz-conventional-changelog"
+    }
+  },
   "homepage": "https://github.com/wuch1995/viewerjs#readme",
   "devDependencies": {
     "@babel/core": "^7.5.5",
