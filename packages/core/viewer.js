@@ -17,8 +17,9 @@ export default class Viewer {
     this.parent = document.body
     this.container = null
     this.zooming = false
+    this.zoomMoving = false
     this.moving = false
-    this.dbClickTimeout = null
+    this.isDbClick = false
     this.lastClickTime = 0
     this.viewer = {
       el: null,
@@ -85,7 +86,7 @@ export default class Viewer {
   onTouchStart (e) {
     if (!this.zooming) {
       this.handleWrapPointerStart(e)
-    } else if (e.target === this.image.el) {
+    } else if (this.zooming && e.target === this.image.el) {
       this.handleImageZoomStart(e)
     }
   }
@@ -116,7 +117,8 @@ export default class Viewer {
     }]
     if (e.target === this.image.el) {
       let now = Date.now()
-      if (now - this.lastClickTime < 400) {
+      if (now - this.lastClickTime < 300) {
+        this.isDbClick = true
         if (this.moving) return
         if (this.zooming) {
           this.zoom(this.image.oldRatio, this.imageZoom.pointer)
@@ -127,6 +129,7 @@ export default class Viewer {
         }
       }
       this.lastClickTime = now
+      this.isDbClick = false
     }
   }
 
@@ -241,6 +244,9 @@ export default class Viewer {
   }
 
   handleImageZoomMove (e) {
+
+    this.zoomMoving = true
+
     const touch = e.targetTouches
     const {
       left,
@@ -267,6 +273,10 @@ export default class Viewer {
     // this.image.top = newTop
   }
   handleImageZoomEnd (e) {
+    if (!this.zoomMoving) {
+      return
+    }
+    this.zoomMoving = false
     const {
       width: viewerWidth,
       height: viewerHeight

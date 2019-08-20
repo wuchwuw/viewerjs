@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node ./examples/server.js"
+    "dev": "node ./examples/server.js",
+    "commit": "git-cz"
   },
   "repository": {
     "type": "git",
@@ -25,6 +26,7 @@
     "@babel/core": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
     "babel-loader": "^8.0.6",
+    "commitizen": "^4.0.3",
     "css-loader": "^3.1.0",
     "express": "^4.17.1",
     "rimraf": "^2.6.3",
