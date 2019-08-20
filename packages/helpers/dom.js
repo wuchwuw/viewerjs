@@ -25,6 +25,15 @@ export function removeClass (element, className) {
   }
 }
 
+export function hasClass (element, className) {
+  if (element.classList) {
+    return element.classList.contains(className)
+  } else {
+    let classNames = element.className.trim()
+    return classNames.indexOf(className) > -1
+  }
+}
+
 export function setStyle (element, styles) {
   Object.keys(styles).forEach(key => {
     element.style[key] = styles[key]

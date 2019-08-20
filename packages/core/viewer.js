@@ -1,11 +1,12 @@
 import ViewerImage from './viewer-image'
-import TEMPLATE from '../shared/template'
 import {
   addClass,
   setStyle,
   removeClass,
   addEventListener
 } from '../helpers/dom'
+
+import ViewerContainer from './viewer-container'
 
 import {
   getPointersCenter
@@ -14,8 +15,6 @@ import {
 export default class Viewer {
   constructor (source, options) {
     this.images = []
-    this.parent = document.body
-    this.container = null
     this.zooming = false
     this.zoomMoving = false
     this.moving = false
@@ -43,6 +42,7 @@ export default class Viewer {
       pageY: 0,
       pointer: {}
     }
+    this.container = new ViewerContainer()
     this.initViewer()
     this.initImage(source)
   }
@@ -60,11 +60,7 @@ export default class Viewer {
   }
 
   initViewer () {
-    const container = document.createElement('div')
-    addClass(container, 'viewer-container')
-    container.innerHTML = TEMPLATE
-    this.parent.appendChild(container)
-    this.container = container
+    const { el: container } = this.container
     this.viewer.el = container.querySelector('.viewer-wrap')
     addEventListener(this.viewer.el, 'touchstart', this.onTouchStart.bind(this))
     addEventListener(this.viewer.el, 'touchmove', this.onTouchMove.bind(this))
@@ -73,17 +69,18 @@ export default class Viewer {
   }
 
   show () {
-    addClass(this.parent, 'viewer-open')
-    addClass(this.container, 'viewer-show')
+    const { container } = this
+    console.log(container)
+    container.show()
   }
 
   hide () {
-    removeClass(this.parent, 'viewer-open')
-    removeClass(this.viewer.el, 'viewer-show')
-    addClass(this.viewer.el, 'viewer-close')
+    const { container } = this
+    container.hide()
   }
 
   onTouchStart (e) {
+    console.log(e)
     if (!this.zooming) {
       this.handleWrapPointerStart(e)
     } else if (this.zooming && e.target === this.image.el) {
@@ -166,6 +163,11 @@ export default class Viewer {
     this.imageZoom.left = this.image.left
     this.imageZoom.top = this.image.top
 
+    // setStyle(this.image.el, {
+    //   width: this.image.width + 'px',
+    //   height: this.image.height + 'px',
+    //   transform: `translate3d(${this.image.left}px, ${this.image.top}px) scale(${ratio})`
+    // })
     this.image.reset()
   }
 
@@ -276,7 +278,7 @@ export default class Viewer {
     if (!this.zoomMoving) {
       return
     }
-    this.zoomMoving = false
+    this.zoomMoving = true
     const {
       width: viewerWidth,
       height: viewerHeight

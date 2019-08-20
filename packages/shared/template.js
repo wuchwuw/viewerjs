@@ -1,6 +1,6 @@
 export default (
   `
-    <div class="viewer-header">
+    <div class="viewer-header" touch-action="none">
       <span class="viewer-index">1/1</span>
       <span class="viewer-close">x</span>
     </div>
