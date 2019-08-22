@@ -6,6 +6,10 @@ import {
   addEventListener
 } from '../helpers/dom'
 
+import {
+  getDist
+} from '../helpers/util'
+
 import ViewerContainer from './viewer-container'
 
 import {
@@ -42,6 +46,11 @@ export default class Viewer {
       pageY: 0,
       pointer: {}
     }
+    this.mutipleZoom = {
+      diffX: 0,
+      diffY: 0,
+      dist: 0
+    }
     this.container = new ViewerContainer()
     this.initViewer()
     this.initImage(source)
@@ -66,11 +75,14 @@ export default class Viewer {
     addEventListener(this.viewer.el, 'touchmove', this.onTouchMove.bind(this))
     addEventListener(this.viewer.el, 'touchend', this.onTouchEnd.bind(this))
     addEventListener(this.viewer.el, 'click', this.onClick.bind(this))
+    addEventListener(window, 'gesturestart', (e) => { e.preventDefault() })
+    addEventListener(window, 'gesturemove', (e) => { e.preventDefault() })
+    addEventListener(window, 'gestureend', (e) => { e.preventDefault() })
   }
 
   show () {
     const { container } = this
-    console.log(container)
+    console.log(container.show)
     container.show()
   }
 
@@ -80,17 +92,28 @@ export default class Viewer {
   }
 
   onTouchStart (e) {
-    console.log(e)
     if (!this.zooming) {
-      this.handleWrapPointerStart(e)
-    } else if (this.zooming && e.target === this.image.el) {
+      if (e.target === this.image.el) {
+        if (e.targetTouches.length === 1) {
+          this.handleWrapPointerStart(e)
+        } else {
+          this.handleMutipleZoomStart(e)
+        }
+      }
+    } else if (e.target === this.image.el) {
       this.handleImageZoomStart(e)
     }
   }
 
   onTouchMove (e) {
     if (!this.zooming) {
-      this.handleWrapPointerMove(e)
+      if (e.target === this.image.el) {
+        if (e.targetTouches.length === 1) {
+          this.handleWrapPointerMove(e)
+        } else {
+          this.handleMutipleZoomMove(e)
+        }
+      }
     } else if (e.target === this.image.el) {
       this.handleImageZoomMove(e)
     }
@@ -105,6 +128,7 @@ export default class Viewer {
   }
 
   onClick (e) {
+    if (this.image.transitioning) return
     // ios div pointer
 
     //todo handle pointer
@@ -130,8 +154,47 @@ export default class Viewer {
     }
   }
 
+  handleMutipleZoomStart (e) {
+    let pointers = e.targetTouches
+    let pointer1 = pointers[0]
+    let pointer2 = pointers[1]
+
+    let diffX = pointer1.pageX - pointer2.pageX
+    let diffY = pointer1.pageY - pointer2.pageY
+
+    this.mutipleZoom.dist = getDist(diffX, diffY)
+    
+    this.mutipleZoom.diffX = diffX
+    this.mutipleZoom.diffY = diffY
+  }
+
+  handleMutipleZoomMove (e) {
+    let pointers = e.targetTouches
+    let pointer1 = pointers[0]
+    let pointer2 = pointers[1]
+
+    let diffX = pointer1.pageX - pointer2.pageX
+    let diffY = pointer1.pageY - pointer2.pageY
+
+    let dist = getDist(diffX, diffY)
+
+    const {
+      oldRatio,
+      naturalWidth
+    } = this.image
+
+    let ratio = ((dist - this.mutipleZoom.dist) / naturalWidth).toFixed(2)
+    // alter(ratio)
+    // alter(pointer)
+    let newRatio = Number(oldRatio) + Number(ratio)
+    this.zoom(newRatio, pointers)
+  }
+
   zoom (ratio, pointers) {
     addClass(this.image.el, 'viewer-image-zoom')
+    // setStyle(this.image.el, {
+    //   'willChange': 'transform'
+    // })
     const {
       naturalWidth,
       naturalHeight,
@@ -141,11 +204,13 @@ export default class Viewer {
       top
     } = this.image
 
+    ratio = Math.min(Math.max(1, ratio), 2)
+
     const newWidth = naturalWidth * ratio
     const newHeight = naturalHeight * ratio
     const offsetWidth = newWidth - width
     const offsetHeight = newHeight - height
-    const oldRatio = width / naturalWidth
+    const oldRatio = (width / naturalWidth).toFixed(2)
 
     if (pointers) {
       // todo bugfix imageZoom.left image.left
@@ -168,7 +233,9 @@ export default class Viewer {
     //   height: this.image.height + 'px',
     //   transform: `translate3d(${this.image.left}px, ${this.image.top}px) scale(${ratio})`
     // })
-    this.image.reset()
+    requestAnimationFrame(() => {
+      this.image.reset()
+    })
   }
 
   handleWrapPointerStart (e) {
@@ -278,7 +345,7 @@ export default class Viewer {
     if (!this.zoomMoving) {
       return
     }
-    this.zoomMoving = true
+    this.zoomMoving = false
     const {
       width: viewerWidth,
       height: viewerHeight

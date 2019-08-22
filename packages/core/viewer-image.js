@@ -7,33 +7,57 @@ import {
 export default class ViewerImage {
   constructor (image, index, viewer) {
     const { width: viewerWidth, height: viewerHeight } = viewer
-    // init render 
-    this.naturalWidth = image.naturalWidth
-    this.naturalHeight = image.naturalHeight
-    this.radio = image.naturalWidth / image.naturalHeight
-    this.src = image.src
-    this.width = viewerWidth
-    this.height = viewerHeight
-    this.index = index
-    this.el = null
+    // init render
+    this.getImageNaturalSize(image, (image) => {
+      this.naturalWidth = image.naturalWidth
+      this.naturalHeight = image.naturalHeight
+      this.radio = image.naturalWidth / image.naturalHeight
+      this.oldRatio = image.naturalWidth / image.naturalHeight
+      this.src = image.src
+      this.width = viewerWidth
+      this.height = viewerHeight
+      this.index = index
+      this.transitioning = false
+      this.el = null
 
-    this.zoomData = {
-      
-    }
+      if (image.naturalHeight * this.radio > viewerWidth) {
+        this.height = viewerWidth / this.radio
+      } else {
+        this.width = viewerHeight * this.radio
+      }
 
-    if (image.naturalHeight * this.radio > viewerWidth) {
-      this.height = viewerWidth / this.radio
+      this.width = Math.min(this.width, viewerWidth)
+      this.height = Math.min(this.height, viewerHeight)
+
+      this.left = (viewerWidth - this.width) / 2
+      this.top = (viewerHeight - this.height) / 2
+
+      this.renderImage(viewer, index)
+      this.initEvent()
+    })
+  }
+
+  initEvent () {
+    addEventListener(this.el, 'transitionend', () => {
+      this.transitioning = false
+      console.log(`${this.index}:${this.transitioning}`)
+    })
+    addEventListener(this.el, 'transitionstart', () => {
+      this.transitioning = true
+      console.log(`${this.index}:${this.transitioning}`)
+    })
+  }
+
+  getImageNaturalSize (image, cb) {
+    if (image.complete) {
+      cb(image)
     } else {
-      this.width = viewerHeight * this.radio
+      let newImage = document.createElement('img')
+      newImage.src = image.src
+      newImage.onload = () => {
+        cb(newImage)
+      }
     }
-
-    this.width = Math.min(this.width, viewerWidth)
-    this.height = Math.min(this.height, viewerHeight)
-
-    this.left = (viewerWidth - this.width) / 2
-    this.top = (viewerHeight - this.height) / 2
-
-    this.renderImage(viewer, index)
   }
 
   renderImage (viewer, index) {

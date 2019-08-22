@@ -8,14 +8,14 @@
   z-index: 999;
   display: none;
   opacity: 0;
-  transition: opacity .3s;
+  transition: opacity .5s;
+  user-select: none;
 }
 
 .viewer-wrap {
   height: 100%;
   font-size: 0;
   background: rgba(0, 0, 0, .9);
-  overflow: hidden;
 }
 
 .viewer-open {
@@ -37,8 +37,15 @@
 
 .viewer-header {
   position: absolute;
+  /* top: 0;
+  z-index: 1; */
 }
 
 .viewer-image-zoom {
   transition: all .3s;
 }
+
+/* .viewer-close {
+  font-size: 20px;
+  color: #fff;
+} */

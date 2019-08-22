@@ -21,7 +21,7 @@ export function forEach (value, callback) {
       }
     } else if (isObject(value)) {
       Object.keys(value).forEach(key => {
-        callback.call(value, value[key], i, value)
+        callback.call(value, value[key], key, value)
       })
     }
   }
@@ -30,10 +30,12 @@ export function forEach (value, callback) {
 export function getPointersCenter (pointers) {
   let pageX = 0
   let pageY = 0
-  let count = pointers.length
-  pointers.forEach(pointer => {
+  let count = 0
+
+  forEach(pointers, (pointer) => {
     pageX += pointer.pageX
     pageY += pointer.pageY
+    count ++
   })
 
   pageX /= count
@@ -43,4 +45,8 @@ export function getPointersCenter (pointers) {
     pageX,
     pageY
   }
+}
+
+export function getDist (x, y) {
+  return Math.sqrt(x * x + y * y)
 }

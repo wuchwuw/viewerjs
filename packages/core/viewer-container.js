@@ -12,7 +12,8 @@ export default class ViewerContainer {
   constructor () {
     this.parent = document.body
     this.el = null
-    this.show = false
+    this.closeEl = null
+    this.display = false
 
     this.init()
     this.initEvent()
@@ -25,28 +26,35 @@ export default class ViewerContainer {
     this.parent.appendChild(container)
 
     this.el = container
+    this.closeEl = container.querySelector('.viewer-close')
   }
 
   initEvent () {
-    const { el } = this
-    addEventListener(el, this.transitionEnd.bind(this))
+    const { el, closeEl } = this
+    addEventListener(el, 'transitionend', this.transitionEnd.bind(this))
+    addEventListener(closeEl, 'click', this.hide.bind(this))
   }
 
   show () {
-    this.show = true
+    const { el, parent } = this
     addClass(el, 'viewer-show')
-    addClass(el, 'viewer-fade-in')
+    addClass(parent, 'viewer-open')
+    setTimeout(() => {
+      addClass(el, 'viewer-fade-in')
+      this.display = true
+    }, 20)
   }
 
   hide () {
+    const { el } = this
     removeClass(el, 'viewer-fade-in')
+    this.display = false
   }
 
   transitionEnd () {
     const { el } = this
-    if (this.show) {
+    if (!this.display) {
       removeClass(el, 'viewer-show')
-      this.show = false
     }
   }
 }
