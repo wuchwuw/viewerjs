@@ -22,8 +22,8 @@ export default class Viewer {
     this.zooming = false
     this.zoomMoving = false
     this.moving = false
-    this.isDbClick = false
     this.lastClickTime = 0
+    this.mutipleZooming = false
     this.viewer = {
       el: null,
       height: window.innerHeight,
@@ -92,6 +92,7 @@ export default class Viewer {
   }
 
   onTouchStart (e) {
+    console.log(e)
     if (!this.zooming) {
       if (e.target === this.image.el) {
         if (e.targetTouches.length === 1) {
@@ -121,7 +122,13 @@ export default class Viewer {
 
   onTouchEnd (e) {
     if (!this.zooming) {
-      this.handleWrapPointerEnd(e)
+      if (e.target === this.image.el) {
+        if (e.targetTouches.length === 1) {
+          this.handleWrapPointerEnd(e)
+        } else {
+          this.handleMutipleZoomEnd(e)
+        }
+      }
     } else if (e.target === this.image.el) {
       this.handleImageZoomEnd(e)
     }
@@ -139,7 +146,6 @@ export default class Viewer {
     if (e.target === this.image.el) {
       let now = Date.now()
       if (now - this.lastClickTime < 300) {
-        this.isDbClick = true
         if (this.moving) return
         if (this.zooming) {
           this.zoom(this.image.oldRatio, this.imageZoom.pointer)
@@ -150,44 +156,75 @@ export default class Viewer {
         }
       }
       this.lastClickTime = now
-      this.isDbClick = false
     }
   }
 
   handleMutipleZoomStart (e) {
+    removeClass(this.image.el, 'viewer-image-zoom')
+    this.mutipleZooming = true
     let pointers = e.targetTouches
     let pointer1 = pointers[0]
     let pointer2 = pointers[1]
 
-    let diffX = pointer1.pageX - pointer2.pageX
-    let diffY = pointer1.pageY - pointer2.pageY
+    let diffX = Math.abs(pointer1.pageX - pointer2.pageX)
+    let diffY = Math.abs(pointer1.pageY - pointer2.pageY)
 
     this.mutipleZoom.dist = getDist(diffX, diffY)
     
     this.mutipleZoom.diffX = diffX
     this.mutipleZoom.diffY = diffY
+    this.mutipleZoom.ratio = this.image.oldRatio
   }
 
   handleMutipleZoomMove (e) {
+    removeClass(this.image.el, 'viewer-image-zoom')
     let pointers = e.targetTouches
     let pointer1 = pointers[0]
     let pointer2 = pointers[1]
 
-    let diffX = pointer1.pageX - pointer2.pageX
-    let diffY = pointer1.pageY - pointer2.pageY
+    let diffX = Math.abs(pointer1.pageX - pointer2.pageX) - this.mutipleZoom.diffX
+    let diffY = Math.abs(pointer1.pageY - pointer2.pageY) - this.mutipleZoom.diffY
 
-    let dist = getDist(diffX, diffY)
-
+    // let dist = getDist(diffX, diffY)
+    // console.log(dist - this.mutipleZoom.dist)
+    // const {
+    //   oldRatio,
+    //   naturalWidth
+    // } = this.image
     const {
-      oldRatio,
-      naturalWidth
+      naturalWidth,
+      naturalHeight,
+      width,
+      height,
+      left,
+      top,
     } = this.image
+    let ratio = Number((diffX / naturalWidth).toFixed(2))
+    this.mutipleZoom.ratio = ratio
+    // let newRatio = Number(oldRatio) + Number(ratio)
+    // console.log(newRatio)
+    // this.zoom(newRatio, pointers)
+    console.log(ratio)
 
-    let ratio = ((dist - this.mutipleZoom.dist) / naturalWidth).toFixed(2)
-    // alter(ratio)
-    // alter(pointer)
-    let newRatio = Number(oldRatio) + Number(ratio)
-    this.zoom(newRatio, pointers)
+    const offsetWidth = naturalWidth * ratio
+    const offsetHeight = naturalHeight * ratio
+    const newWidth = offsetWidth + width
+    const newHeight = offsetHeight + height
+    const center = getPointersCenter(pointers)
+    let newLeft = offsetWidth * (center.pageX - left) / width - left
+    let newTop = offsetHeight * (center.pageY - top) / height - top
+    // this.image.width = newWidth
+    // this.image.height = newHeight
+    setStyle(this.image.el, {
+      width: newWidth + 'px',
+      height: newHeight + 'px',
+      marginLeft: newLeft + 'px',
+      marginTop: newTop + 'px'
+    })
+  }
+
+  handleMutipleZoomEnd (e) {
+    this.image.oldRatio = this.mutipleZoom.ratio
   }
 
   zoom (ratio, pointers) {
@@ -204,13 +241,11 @@ export default class Viewer {
       top
     } = this.image
 
-    ratio = Math.min(Math.max(1, ratio), 2)
-
     const newWidth = naturalWidth * ratio
     const newHeight = naturalHeight * ratio
     const offsetWidth = newWidth - width
     const offsetHeight = newHeight - height
-    const oldRatio = (width / naturalWidth).toFixed(2)
+    let oldRatio = (width / naturalWidth).toFixed(2)
 
     if (pointers) {
       // todo bugfix imageZoom.left image.left
@@ -313,7 +348,7 @@ export default class Viewer {
   }
 
   handleImageZoomMove (e) {
-
+    removeClass(this.image.el, 'viewer-image-zoom')
     this.zoomMoving = true
 
     const touch = e.targetTouches
@@ -327,10 +362,17 @@ export default class Viewer {
     let newDiffY = touch[0].pageY - pageY
     let newLeft = left + newDiffX
     let newTop = top + newDiffY
-    setStyle(this.image.el, {
-      transform: `translate3d(${newLeft}px, ${newTop}px, 0)`,
-      transitionDuration: '0ms'
+    // setStyle(this.image.el, {
+    //   transform: `translate3d(${newLeft}px, ${newTop}px, 0)`,
+    //   transitionDuration: '0ms'
+    // })
+    requestAnimationFrame(() => {
+      setStyle(this.image.el, {
+        marginLeft: newLeft + 'px',
+        marginTop: newTop + 'px'
+      })
     })
+
     this.imageZoom.diffX = newDiffX
     this.imageZoom.diffY = newDiffY
     this.imageZoom.left = newLeft
@@ -342,14 +384,18 @@ export default class Viewer {
     // this.image.top = newTop
   }
   handleImageZoomEnd (e) {
+    addClass(this.image.el, 'viewer-image-zoom')
     if (!this.zoomMoving) {
       return
     }
+
     this.zoomMoving = false
+
     const {
       width: viewerWidth,
       height: viewerHeight
     } = this.viewer
+
     const {
       width: imageWidth,
       height: imageHeight,
@@ -375,13 +421,17 @@ export default class Viewer {
     let newZoomLeft = Math.min(Math.max(zoomLeft, leftMax), leftMin)
     let newZoomTop = Math.min(Math.max(zoomTop, topMax), topMin)
 
-    setStyle(this.image.el, {
-      transform: `translate3d(${newZoomLeft}px, ${newZoomTop}px, 0)`,
-      transitionDuration: '500ms'
-    })
+    // setStyle(this.image.el, {
+    //   transform: `translate3d(${newZoomLeft}px, ${newZoomTop}px, 0)`,
+    //   transitionDuration: '500ms'
+    // })
 
     this.imageZoom.left = newZoomLeft
     this.imageZoom.top = newZoomTop
+
+    requestAnimationFrame(() => {
+      this.image.move(this.imageZoom.left, this.imageZoom.top)
+    })
   }
   
 }

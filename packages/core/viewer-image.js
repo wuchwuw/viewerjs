@@ -70,14 +70,10 @@ export default class ViewerImage {
     })
     const img = document.createElement('img')
     img.src = this.src
-    setStyle(img, {
-      width: this.width + 'px',
-      height: this.height + 'px',
-      transform: `translate3d(${this.left}px, ${this.top}px, 0)`
-    })
     wrap.appendChild(img)
     viewer.el.appendChild(wrap)
     this.el = img
+    this.reset()
     // addEventListener(img, 'click', this.onClick.bind(this))
   }
 
@@ -85,7 +81,15 @@ export default class ViewerImage {
     setStyle(this.el, {
       width: this.width + 'px',
       height: this.height + 'px',
-      transform: `translate3d(${this.left}px, ${this.top}px, 0)`
+      marginLeft: this.left + 'px',
+      marginTop: this.top + 'px'
+    })
+  }
+
+  move (left, top) {
+    setStyle(this.el, {
+      marginLeft: left + 'px',
+      marginTop: top + 'px'
     })
   }
 }
