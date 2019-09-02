@@ -11,7 +11,7 @@ export default class ViewerImage {
     this.getImageNaturalSize(image, (image) => {
       this.naturalWidth = image.naturalWidth
       this.naturalHeight = image.naturalHeight
-      this.radio = image.naturalWidth / image.naturalHeight
+      this.ratio = image.naturalWidth / image.naturalHeight
       this.oldRatio = image.naturalWidth / image.naturalHeight
       this.src = image.src
       this.width = viewerWidth
@@ -20,10 +20,10 @@ export default class ViewerImage {
       this.transitioning = false
       this.el = null
 
-      if (image.naturalHeight * this.radio > viewerWidth) {
-        this.height = viewerWidth / this.radio
+      if (image.naturalHeight * this.ratio > viewerWidth) {
+        this.height = viewerWidth / this.ratio
       } else {
-        this.width = viewerHeight * this.radio
+        this.width = viewerHeight * this.ratio
       }
 
       this.width = Math.min(this.width, viewerWidth)

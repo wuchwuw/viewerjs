@@ -6,4 +6,3 @@ let v = new Viewer(source)
 source.addEventListener('click', function () {
   v.show()
 })
-console.log(v)

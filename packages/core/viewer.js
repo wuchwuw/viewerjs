@@ -21,7 +21,6 @@ export default class Viewer {
     this.images = []
     this.zooming = false
     this.zoomMoving = false
-    this.moving = false
     this.lastClickTime = 0
     this.mutipleZooming = false
     this.viewer = {
@@ -75,14 +74,13 @@ export default class Viewer {
     addEventListener(this.viewer.el, 'touchmove', this.onTouchMove.bind(this))
     addEventListener(this.viewer.el, 'touchend', this.onTouchEnd.bind(this))
     addEventListener(this.viewer.el, 'click', this.onClick.bind(this))
-    addEventListener(window, 'gesturestart', (e) => { e.preventDefault() })
-    addEventListener(window, 'gesturemove', (e) => { e.preventDefault() })
-    addEventListener(window, 'gestureend', (e) => { e.preventDefault() })
+    // addEventListener(window, 'gesturestart', (e) => { e.preventDefault() })
+    // addEventListener(window, 'gesturemove', (e) => { e.preventDefault() })
+    // addEventListener(window, 'gestureend', (e) => { e.preventDefault() })
   }
 
   show () {
     const { container } = this
-    console.log(container.show)
     container.show()
   }
 
@@ -92,45 +90,85 @@ export default class Viewer {
   }
 
   onTouchStart (e) {
-    console.log(e)
-    if (!this.zooming) {
-      if (e.target === this.image.el) {
-        if (e.targetTouches.length === 1) {
-          this.handleWrapPointerStart(e)
-        } else {
-          this.handleMutipleZoomStart(e)
-        }
+    // if (!this.zooming) {
+    //   if (e.target === this.image.el) {
+    //     if (e.touches.length <= 1) {
+    //       this.handleWrapPointerStart(e)
+    //     } else {
+    //       this.handleMutipleZoomStart(e)
+    //     }
+    //   }
+    // } else if (e.target === this.image.el) {
+    //   this.handleImageZoomStart(e)
+    // }
+
+    if (e.touches.length <= 1) {
+      if ((this.zooming || this.mutipleZooming) && e.target === this.image.el) {
+        this.handleImageZoomStart(e)
+      } else if (!this.zooming && !this.mutipleZooming){
+        this.handleWrapPointerStart(e)
       }
     } else if (e.target === this.image.el) {
-      this.handleImageZoomStart(e)
+      this.handleMutipleZoomStart(e)
     }
   }
 
   onTouchMove (e) {
-    if (!this.zooming) {
-      if (e.target === this.image.el) {
-        if (e.targetTouches.length === 1) {
-          this.handleWrapPointerMove(e)
-        } else {
-          this.handleMutipleZoomMove(e)
-        }
+    // if (!this.zooming) {
+    //   if (e.target === this.image.el) {
+    //     if (e.touches.length <= 1) {
+    //       this.handleWrapPointerMove(e)
+    //     } else {
+    //       this.handleMutipleZoomMove(e)
+    //     }
+    //   }
+    // } else if (e.target === this.image.el) {
+    //   this.handleImageZoomMove(e)
+    // }
+    if (e.touches.length <= 1) {
+      if ((this.zooming || this.mutipleZooming) && e.target === this.image.el) {
+        this.handleImageZoomMove(e)
+      } else if (!this.zooming && !this.mutipleZooming){
+        this.handleWrapPointerMove(e)
       }
     } else if (e.target === this.image.el) {
-      this.handleImageZoomMove(e)
+      this.handleMutipleZoomMove(e)
     }
   }
 
   onTouchEnd (e) {
-    if (!this.zooming) {
-      if (e.target === this.image.el) {
-        if (e.targetTouches.length === 1) {
-          this.handleWrapPointerEnd(e)
-        } else {
-          this.handleMutipleZoomEnd(e)
-        }
-      }
-    } else if (e.target === this.image.el) {
+    // alert(e.touches.length)
+    // alert(e.changedTouches.length)
+    // alert(e.targetTouches.length)
+    // alert(e.changedTouches.length)
+    // if (!this.zooming) {
+    //   if (e.target === this.image.el) {
+    //     if (e.changedTouches.length <= 1 && !this.mutipleZooming) {
+    //       this.handleWrapPointerEnd(e)
+    //     } else {
+    //       this.handleMutipleZoomEnd(e)
+    //     }
+    //   }
+    // } else if (e.target === this.image.el) {
+    //   this.handleImageZoomEnd(e)
+    // }
+
+    // if (e.changedTouches.length <= 1) {
+    //   if ((this.zooming || this.mutipleZooming) && e.target === this.image.el) {
+    //     this.handleImageZoomEnd(e)
+    //   } else if (!this.zooming && !this.mutipleZooming){
+    //     this.handleWrapPointerEnd(e)
+    //   }
+    // } else if (e.target === this.image.el) {
+    //   this.handleMutipleZoomEnd(e)
+    // }
+
+    if (this.zooming) {
       this.handleImageZoomEnd(e)
+    } else if (this.mutipleZooming) {
+      this.handleMutipleZoomEnd(e)
+    } else {
+      this.handleWrapPointerEnd(e)
     }
   }
 
@@ -146,7 +184,7 @@ export default class Viewer {
     if (e.target === this.image.el) {
       let now = Date.now()
       if (now - this.lastClickTime < 300) {
-        if (this.moving) return
+        if (this.zoomMoving) return
         if (this.zooming) {
           this.zoom(this.image.oldRatio, this.imageZoom.pointer)
           this.zooming = false
@@ -170,10 +208,7 @@ export default class Viewer {
     let diffY = Math.abs(pointer1.pageY - pointer2.pageY)
 
     this.mutipleZoom.dist = getDist(diffX, diffY)
-    
-    this.mutipleZoom.diffX = diffX
-    this.mutipleZoom.diffY = diffY
-    this.mutipleZoom.ratio = this.image.oldRatio
+    this.mutipleZoom.diff = this.mutipleZoom.dist - 0
   }
 
   handleMutipleZoomMove (e) {
@@ -182,15 +217,11 @@ export default class Viewer {
     let pointer1 = pointers[0]
     let pointer2 = pointers[1]
 
-    let diffX = Math.abs(pointer1.pageX - pointer2.pageX) - this.mutipleZoom.diffX
-    let diffY = Math.abs(pointer1.pageY - pointer2.pageY) - this.mutipleZoom.diffY
+    let diffX = Math.abs(pointer1.pageX - pointer2.pageX)
+    let diffY = Math.abs(pointer1.pageY - pointer2.pageY)
 
-    // let dist = getDist(diffX, diffY)
-    // console.log(dist - this.mutipleZoom.dist)
-    // const {
-    //   oldRatio,
-    //   naturalWidth
-    // } = this.image
+    let dist = getDist(diffX, diffY)
+    let diff = dist - this.mutipleZoom.diff
     const {
       naturalWidth,
       naturalHeight,
@@ -199,32 +230,37 @@ export default class Viewer {
       left,
       top,
     } = this.image
-    let ratio = Number((diffX / naturalWidth).toFixed(2))
-    this.mutipleZoom.ratio = ratio
-    // let newRatio = Number(oldRatio) + Number(ratio)
-    // console.log(newRatio)
-    // this.zoom(newRatio, pointers)
-    console.log(ratio)
 
-    const offsetWidth = naturalWidth * ratio
-    const offsetHeight = naturalHeight * ratio
-    const newWidth = offsetWidth + width
-    const newHeight = offsetHeight + height
+    let newWidth = diff + width
+    let newHeight = diff + height
+
+    // const offsetWidth = naturalWidth * ratio
+    // const offsetHeight = naturalHeight * ratio
+    // const newWidth = offsetWidth + width
+    // const newHeight = offsetHeight + height
     const center = getPointersCenter(pointers)
-    let newLeft = offsetWidth * (center.pageX - left) / width - left
-    let newTop = offsetHeight * (center.pageY - top) / height - top
-    // this.image.width = newWidth
-    // this.image.height = newHeight
+    let newLeft = left - diff * (center.pageX - left) / width
+    let newTop = top - diff * (center.pageY - top) / height
+
     setStyle(this.image.el, {
       width: newWidth + 'px',
       height: newHeight + 'px',
       marginLeft: newLeft + 'px',
       marginTop: newTop + 'px'
     })
+
+    this.mutipleZoom.width = newWidth
+    this.mutipleZoom.height = newHeight
+    this.mutipleZoom.left = newLeft
+    this.mutipleZoom.top = newTop
   }
 
   handleMutipleZoomEnd (e) {
-    this.image.oldRatio = this.mutipleZoom.ratio
+    this.mutipleZooming = false
+    this.image.width = this.mutipleZoom.width
+    this.image.height = this.mutipleZoom.height
+    this.image.left = this.mutipleZoom.left
+    this.image.top = this.mutipleZoom.top
   }
 
   zoom (ratio, pointers) {
@@ -245,7 +281,7 @@ export default class Viewer {
     const newHeight = naturalHeight * ratio
     const offsetWidth = newWidth - width
     const offsetHeight = newHeight - height
-    let oldRatio = (width / naturalWidth).toFixed(2)
+    this.image.oldRatio = Number((width / naturalWidth).toFixed(2))
 
     if (pointers) {
       // todo bugfix imageZoom.left image.left
@@ -256,7 +292,6 @@ export default class Viewer {
       this.image.left -= offsetWidth / 2
       this.image.top -= offsetHeight / 2
     }
-    this.image.oldRatio = oldRatio
     this.image.width = newWidth
     this.image.height = newHeight
     
