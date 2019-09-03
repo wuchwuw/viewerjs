@@ -4,6 +4,10 @@ import {
   addEventListener
 } from '../helpers/dom'
 
+import {
+  MARGIN
+} from '../shared/constants'
+
 export default class ViewerImage {
   constructor (image, index, viewer) {
     const { width: viewerWidth, height: viewerHeight } = viewer
@@ -31,6 +35,13 @@ export default class ViewerImage {
 
       this.left = (viewerWidth - this.width) / 2
       this.top = (viewerHeight - this.height) / 2
+
+      this.init = {
+        width: this.width,
+        height: this.height,
+        left: this.left,
+        top: this.top
+      }
 
       this.renderImage(viewer, index)
       this.initEvent()
@@ -66,7 +77,7 @@ export default class ViewerImage {
     setStyle(wrap, {
       width: viewer.width + 'px',
       height: viewer.height + 'px',
-      transform: `translate3d(${index * viewer.width}px, 0, 0)`
+      transform: `translate3d(${index * viewer.width + MARGIN * index}px, 0, 0)`
     })
     const img = document.createElement('img')
     img.src = this.src

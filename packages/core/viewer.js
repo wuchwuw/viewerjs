@@ -7,14 +7,16 @@ import {
 } from '../helpers/dom'
 
 import {
-  getDist
+  getDist,
+  getPointersCenter,
+  damping
 } from '../helpers/util'
 
 import ViewerContainer from './viewer-container'
 
 import {
-  getPointersCenter
-} from '../helpers/util'
+  MARGIN
+} from '../shared/constants'
 
 export default class Viewer {
   constructor (source, options) {
@@ -63,7 +65,8 @@ export default class Viewer {
     images.forEach((image, index) => {
       this.images.push(new ViewerImage(image, index, this.viewer))
     })
-    this.viewer.contentWidth = this.viewer.width * this.images.length
+    this.viewer.contentWidth = this.viewer.width * this.images.length + (this.images.length - 1) * MARGIN
+    console.log(this.viewer.contentWidth)
     this.image = this.images[this.touch.currentIndex]
   }
 
@@ -101,7 +104,6 @@ export default class Viewer {
     // } else if (e.target === this.image.el) {
     //   this.handleImageZoomStart(e)
     // }
-
     if (e.touches.length <= 1) {
       if ((this.zooming || this.mutipleZooming) && e.target === this.image.el) {
         this.handleImageZoomStart(e)
@@ -222,25 +224,25 @@ export default class Viewer {
 
     let dist = getDist(diffX, diffY)
     let diff = dist - this.mutipleZoom.diff
+
     const {
-      naturalWidth,
-      naturalHeight,
       width,
       height,
       left,
-      top,
+      top
     } = this.image
 
     let newWidth = diff + width
     let newHeight = diff + height
 
-    // const offsetWidth = naturalWidth * ratio
-    // const offsetHeight = naturalHeight * ratio
-    // const newWidth = offsetWidth + width
-    // const newHeight = offsetHeight + height
     const center = getPointersCenter(pointers)
     let newLeft = left - diff * (center.pageX - left) / width
     let newTop = top - diff * (center.pageY - top) / height
+
+    this.mutipleZoom.width = newWidth
+    this.mutipleZoom.height = newHeight
+    this.mutipleZoom.left = newLeft
+    this.mutipleZoom.top = newTop
 
     setStyle(this.image.el, {
       width: newWidth + 'px',
@@ -248,19 +250,29 @@ export default class Viewer {
       marginLeft: newLeft + 'px',
       marginTop: newTop + 'px'
     })
-
-    this.mutipleZoom.width = newWidth
-    this.mutipleZoom.height = newHeight
-    this.mutipleZoom.left = newLeft
-    this.mutipleZoom.top = newTop
   }
 
   handleMutipleZoomEnd (e) {
+    addClass(this.image.el, 'viewer-image-zoom')
     this.mutipleZooming = false
-    this.image.width = this.mutipleZoom.width
-    this.image.height = this.mutipleZoom.height
-    this.image.left = this.mutipleZoom.left
-    this.image.top = this.mutipleZoom.top
+
+    const {
+      init
+    } = this.image
+
+    if (this.mutipleZoom.width < init.width || this.mutipleZoom.height < init.height) {
+      this.image.width = init.width
+      this.image.height = init.height
+      this.image.left = init.left
+      this.image.top = init.top
+
+      this.image.reset()
+    } else {
+      this.image.width = this.mutipleZoom.width
+      this.image.height = this.mutipleZoom.height
+      this.image.left = this.mutipleZoom.left
+      this.image.top = this.mutipleZoom.top
+    }
   }
 
   zoom (ratio, pointers) {
@@ -319,9 +331,19 @@ export default class Viewer {
   handleWrapPointerMove (e) {
     const touch = e.targetTouches
     const { currentLeft } = this.touch
+    const { contentWidth } = this.viewer
     let diff = touch[0].pageX - this.touch.pageX
+    let left = currentLeft + diff
+    let absLeft = Math.abs(left)
+    if (left > 0) {
+      left = damping(left)
+    } else if (absLeft > contentWidth - 375) {
+      console.log(absLeft - contentWidth - 375)
+      let d = damping(absLeft - contentWidth - 375)
+      left = left - d
+    }
     setStyle(this.viewer.el, {
-      transform: `translate3d(${currentLeft + diff}px, 0, 0)`,
+      transform: `translate3d(${left}px, 0, 0)`,
       transitionDuration: '0ms'
     })
     this.touch.diff = diff
@@ -347,22 +369,21 @@ export default class Viewer {
     } else {
       let over = absLeft % transformWidth
       if (over > transformWidth / 2) {
-        left = Math.ceil(absLeft / transformWidth) * -transformWidth
+        let index = Math.ceil(absLeft / transformWidth)
+        left = index * -transformWidth - MARGIN * index
+        touch.currentIndex = index
         setStyle(el, {
           transform: `translate3d(${left}px, 0, 0)`,
           transitionDuration: '300ms'
         })
       } else {
-        left = Math.floor(absLeft / transformWidth) * -transformWidth
+        let index = Math.floor(absLeft / transformWidth)
+        left = index * -transformWidth - MARGIN * index
+        touch.currentIndex = index
         setStyle(el, {
           transform: `translate3d(${left}px, 0, 0)`,
           transitionDuration: '300ms'
         })
-      }
-      if (touch.currentLeft - left === transformWidth) {
-        touch.currentIndex++
-      } else if (touch.currentLeft - left === -transformWidth) {
-        touch.currentIndex--
       }
       this.image = this.images[touch.currentIndex]
       touch.currentLeft = left
@@ -375,10 +396,6 @@ export default class Viewer {
     if (touch && touch.length === 1) {
       this.imageZoom.pageX = touch[0].pageX
       this.imageZoom.pageY = touch[0].pageY
-
-      // init zoom left,top
-      // this.imageZoom.left = this.image.left
-      // this.imageZoom.top = this.image.top
     }
   }
 
