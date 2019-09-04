@@ -1,7 +1,6 @@
 import { forEach } from './util'
 
 export function addClass (element, className) {
-  console.log(element)
   if (element.classList) {
     element.classList.add(className)
   } else {

@@ -15,7 +15,8 @@ import {
 import ViewerContainer from './viewer-container'
 
 import {
-  MARGIN
+  MARGIN,
+  MIN_TRANSFORM_DIFF
 } from '../shared/constants'
 
 export default class Viewer {
@@ -66,7 +67,6 @@ export default class Viewer {
       this.images.push(new ViewerImage(image, index, this.viewer))
     })
     this.viewer.contentWidth = this.viewer.width * this.images.length + (this.images.length - 1) * MARGIN
-    console.log(this.viewer.contentWidth)
     this.image = this.images[this.touch.currentIndex]
   }
 
@@ -93,17 +93,6 @@ export default class Viewer {
   }
 
   onTouchStart (e) {
-    // if (!this.zooming) {
-    //   if (e.target === this.image.el) {
-    //     if (e.touches.length <= 1) {
-    //       this.handleWrapPointerStart(e)
-    //     } else {
-    //       this.handleMutipleZoomStart(e)
-    //     }
-    //   }
-    // } else if (e.target === this.image.el) {
-    //   this.handleImageZoomStart(e)
-    // }
     if (e.touches.length <= 1) {
       if ((this.zooming || this.mutipleZooming) && e.target === this.image.el) {
         this.handleImageZoomStart(e)
@@ -116,17 +105,6 @@ export default class Viewer {
   }
 
   onTouchMove (e) {
-    // if (!this.zooming) {
-    //   if (e.target === this.image.el) {
-    //     if (e.touches.length <= 1) {
-    //       this.handleWrapPointerMove(e)
-    //     } else {
-    //       this.handleMutipleZoomMove(e)
-    //     }
-    //   }
-    // } else if (e.target === this.image.el) {
-    //   this.handleImageZoomMove(e)
-    // }
     if (e.touches.length <= 1) {
       if ((this.zooming || this.mutipleZooming) && e.target === this.image.el) {
         this.handleImageZoomMove(e)
@@ -139,38 +117,12 @@ export default class Viewer {
   }
 
   onTouchEnd (e) {
-    // alert(e.touches.length)
-    // alert(e.changedTouches.length)
-    // alert(e.targetTouches.length)
-    // alert(e.changedTouches.length)
-    // if (!this.zooming) {
-    //   if (e.target === this.image.el) {
-    //     if (e.changedTouches.length <= 1 && !this.mutipleZooming) {
-    //       this.handleWrapPointerEnd(e)
-    //     } else {
-    //       this.handleMutipleZoomEnd(e)
-    //     }
-    //   }
-    // } else if (e.target === this.image.el) {
-    //   this.handleImageZoomEnd(e)
-    // }
-
-    // if (e.changedTouches.length <= 1) {
-    //   if ((this.zooming || this.mutipleZooming) && e.target === this.image.el) {
-    //     this.handleImageZoomEnd(e)
-    //   } else if (!this.zooming && !this.mutipleZooming){
-    //     this.handleWrapPointerEnd(e)
-    //   }
-    // } else if (e.target === this.image.el) {
-    //   this.handleMutipleZoomEnd(e)
-    // }
-
-    if (this.zooming) {
-      this.handleImageZoomEnd(e)
-    } else if (this.mutipleZooming) {
-      this.handleMutipleZoomEnd(e)
-    } else {
+    if (!this.zooming && !this.mutipleZooming) {
       this.handleWrapPointerEnd(e)
+    } else if (this.zooming && this.mutipleZooming) {
+      this.handleMutipleZoomEnd(e)
+    } else if (this.zooming && !this.mutipleZooming) {
+      this.handleImageZoomEnd(e)
     }
   }
 
@@ -202,6 +154,7 @@ export default class Viewer {
   handleMutipleZoomStart (e) {
     removeClass(this.image.el, 'viewer-image-zoom')
     this.mutipleZooming = true
+    this.zooming = true
     let pointers = e.targetTouches
     let pointer1 = pointers[0]
     let pointer2 = pointers[1]
@@ -261,6 +214,7 @@ export default class Viewer {
     } = this.image
 
     if (this.mutipleZoom.width < init.width || this.mutipleZoom.height < init.height) {
+      this.zooming = false
       this.image.width = init.width
       this.image.height = init.height
       this.image.left = init.left
@@ -331,16 +285,15 @@ export default class Viewer {
   handleWrapPointerMove (e) {
     const touch = e.targetTouches
     const { currentLeft } = this.touch
-    const { contentWidth } = this.viewer
+    const { contentWidth, width: transformWidth } = this.viewer
     let diff = touch[0].pageX - this.touch.pageX
     let left = currentLeft + diff
     let absLeft = Math.abs(left)
     if (left > 0) {
       left = damping(left)
-    } else if (absLeft > contentWidth - 375) {
-      console.log(absLeft - contentWidth - 375)
-      let d = damping(absLeft - contentWidth - 375)
-      left = left - d
+    } else if (absLeft > contentWidth - transformWidth) {
+      let d = damping(absLeft - contentWidth + transformWidth)
+      left = -(contentWidth - transformWidth + d)
     }
     setStyle(this.viewer.el, {
       transform: `translate3d(${left}px, 0, 0)`,
@@ -351,43 +304,71 @@ export default class Viewer {
 
   handleWrapPointerEnd (e) {
     const { touch } = this
-    const { el, width: transformWidth, contentWidth } = this.viewer
+    const { el, width: transformWidth } = this.viewer
     let left = touch.diff + touch.currentLeft
-    let absLeft = Math.abs(left)
-    if (left > 0) {
-      setStyle(el, {
-        transform: `translate3d(0, 0, 0)`,
-        transitionDuration: '500ms'
-      })
-      touch.currentLeft = 0
-    } else if (absLeft > contentWidth - transformWidth) {
-      setStyle(el, {
-        transform: `translate3d(${-contentWidth + transformWidth}px, 0, 0)`,
-        transitionDuration: '500ms'
-      })
-      touch.currentLeft = -contentWidth + transformWidth
-    } else {
-      let over = absLeft % transformWidth
-      if (over > transformWidth / 2) {
-        let index = Math.ceil(absLeft / transformWidth)
-        left = index * -transformWidth - MARGIN * index
-        touch.currentIndex = index
-        setStyle(el, {
-          transform: `translate3d(${left}px, 0, 0)`,
-          transitionDuration: '300ms'
-        })
+    if (Math.abs(touch.diff) > MIN_TRANSFORM_DIFF) {
+      if(touch.diff > 0) {
+        if (touch.currentIndex === 0) {
+          left = touch.currentLeft
+        } else {
+          touch.currentIndex --
+          left = touch.currentLeft + transformWidth + MARGIN
+        }
       } else {
-        let index = Math.floor(absLeft / transformWidth)
-        left = index * -transformWidth - MARGIN * index
-        touch.currentIndex = index
-        setStyle(el, {
-          transform: `translate3d(${left}px, 0, 0)`,
-          transitionDuration: '300ms'
-        })
+        if (touch.currentIndex === this.images.length - 1) {
+          left = touch.currentLeft
+        } else {
+          touch.currentIndex ++
+          left = touch.currentLeft - transformWidth - MARGIN
+        }
       }
-      this.image = this.images[touch.currentIndex]
-      touch.currentLeft = left
+    } else {
+      left = touch.currentLeft
     }
+    setStyle(el, {
+      transform: `translate3d(${left}px, 0, 0)`,
+      transitionDuration: '300ms'
+    })
+    this.image = this.images[touch.currentIndex]
+    touch.currentLeft = left
+    // const { touch } = this
+    // const { el, width: transformWidth, contentWidth } = this.viewer
+    // let left = touch.diff + touch.currentLeft
+    // let absLeft = Math.abs(left)
+    // if (left > 0) {
+    //   setStyle(el, {
+    //     transform: `translate3d(0, 0, 0)`,
+    //     transitionDuration: '500ms'
+    //   })
+    //   touch.currentLeft = 0
+    // } else if (absLeft > contentWidth - transformWidth) {
+    //   setStyle(el, {
+    //     transform: `translate3d(${-contentWidth + transformWidth}px, 0, 0)`,
+    //     transitionDuration: '500ms'
+    //   })
+    //   touch.currentLeft = -contentWidth + transformWidth
+    // } else {
+    //   let over = absLeft % transformWidth
+    //   if (over > transformWidth / 2) {
+    //     let index = Math.ceil(absLeft / transformWidth)
+    //     left = index * -transformWidth - MARGIN * index
+    //     touch.currentIndex = index
+    //     setStyle(el, {
+    //       transform: `translate3d(${left}px, 0, 0)`,
+    //       transitionDuration: '300ms'
+    //     })
+    //   } else {
+    //     let index = Math.floor(absLeft / transformWidth)
+    //     left = index * -transformWidth - MARGIN * index
+    //     touch.currentIndex = index
+    //     setStyle(el, {
+    //       transform: `translate3d(${left}px, 0, 0)`,
+    //       transitionDuration: '300ms'
+    //     })
+    //   }
+    //   this.image = this.images[touch.currentIndex]
+    //   touch.currentLeft = left
+    // }
     touch.diff = 0
   }
 
@@ -396,12 +377,18 @@ export default class Viewer {
     if (touch && touch.length === 1) {
       this.imageZoom.pageX = touch[0].pageX
       this.imageZoom.pageY = touch[0].pageY
+      this.imageZoom.timerready = true
     }
   }
 
   handleImageZoomMove (e) {
     removeClass(this.image.el, 'viewer-image-zoom')
     this.zoomMoving = true
+
+    if (this.imageZoom.timerready) {
+      this.imageZoom.startTime = +new Date()
+      this.imageZoom.timerready = false
+    }
 
     const touch = e.targetTouches
     const {
@@ -414,10 +401,7 @@ export default class Viewer {
     let newDiffY = touch[0].pageY - pageY
     let newLeft = left + newDiffX
     let newTop = top + newDiffY
-    // setStyle(this.image.el, {
-    //   transform: `translate3d(${newLeft}px, ${newTop}px, 0)`,
-    //   transitionDuration: '0ms'
-    // })
+
     requestAnimationFrame(() => {
       setStyle(this.image.el, {
         marginLeft: newLeft + 'px',

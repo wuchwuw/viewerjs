@@ -12,3 +12,5 @@ export const EVENT_TOUCH_MOVE = IS_TOUCH_DEVICE ? 'touchmove' : 'mousemove';
 export const EVENT_TOUCH_END = IS_TOUCH_DEVICE ? 'touchend touchcancel' : 'mouseup'
 
 export const MARGIN = 30
+
+export const MIN_TRANSFORM_DIFF = 100
