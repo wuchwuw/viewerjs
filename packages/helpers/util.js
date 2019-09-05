@@ -71,3 +71,20 @@ export function damping (value) {
 
   return scaleedValue
 }
+
+export function getOverflow (min, max, value) {
+  debugger
+  if ((min > value &&  max < value) || (min === value && max === value)) {
+    return value
+  }
+  let diff
+  if (min > value) {
+    diff = min - value
+    diff = damping(diff)
+    return min + diff
+  } else if (max < value) {
+    diff = value - max
+    diff = damping(diff)
+    return max + diff
+  }
+}

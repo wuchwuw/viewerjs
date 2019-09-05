@@ -9,7 +9,8 @@ import {
 import {
   getDist,
   getPointersCenter,
-  damping
+  damping,
+  getOverflow
 } from '../helpers/util'
 
 import ViewerContainer from './viewer-container'
@@ -378,6 +379,8 @@ export default class Viewer {
       this.imageZoom.pageX = touch[0].pageX
       this.imageZoom.pageY = touch[0].pageY
       this.imageZoom.timerready = true
+      this.imageZoom.startX = touch[0].pageX
+      this.imageZoom.startY = touch[0].pageY
     }
   }
 
@@ -415,12 +418,11 @@ export default class Viewer {
     this.imageZoom.top = newTop
     this.imageZoom.pageX = touch[0].pageX
     this.imageZoom.pageY = touch[0].pageY
-
     // this.image.left = newLeft
     // this.image.top = newTop
   }
   handleImageZoomEnd (e) {
-    addClass(this.image.el, 'viewer-image-zoom')
+    removeClass(this.image.el, 'viewer-image-zoom')
     if (!this.zoomMoving) {
       return
     }
@@ -439,6 +441,8 @@ export default class Viewer {
       top: imageTop
     } = this.image
 
+    this.imageZoom.endTime = +new Date()
+
     // 移动范围
     // topMax -> 0 -> topMin
     // leftMax -> 0 -> leftMin
@@ -450,24 +454,55 @@ export default class Viewer {
     const leftMin = isWidthOverflow ? 0 : imageLeft
 
     const {
-      left: zoomLeft,
-      top: zoomTop
+      pageX,
+      pageY,
+      startX,
+      startY,
+      startTime,
+      endTime
     } = this.imageZoom
 
-    let newZoomLeft = Math.min(Math.max(zoomLeft, leftMax), leftMin)
-    let newZoomTop = Math.min(Math.max(zoomTop, topMax), topMin)
+    let distanceX = startX - pageX
+    let distanceY = startY - pageY
+    let distance = getDist(distanceX, distanceY)
+    let speed = distance / (endTime - startTime) * 16.67
+    let rate = Math.min(10, speed)
+    let self = this
+    function step () {
+      speed -= speed / rate
+      let moveX = speed * distanceX / distance
+      let moveY = speed * distanceY / distance
+      self.imageZoom.left = getOverflow(leftMin, leftMax, self.imageZoom.left + moveX)
+      self.imageZoom.top = getOverflow(topMin, topMax, self.imageZoom.top + moveY)
+      self.image.move(self.imageZoom.left, self.imageZoom.top)
+      if (speed < 0.1) {
+        speed = 0
+      } else {
+        requestAnimationFrame(step)
+      }
+    }
 
-    // setStyle(this.image.el, {
-    //   transform: `translate3d(${newZoomLeft}px, ${newZoomTop}px, 0)`,
-    //   transitionDuration: '500ms'
+    step()
+
+    // const {
+    //   left: zoomLeft,
+    //   top: zoomTop
+    // } = this.imageZoom
+
+    // let newZoomLeft = Math.min(Math.max(zoomLeft, leftMax), leftMin)
+    // let newZoomTop = Math.min(Math.max(zoomTop, topMax), topMin)
+
+    // // setStyle(this.image.el, {
+    // //   transform: `translate3d(${newZoomLeft}px, ${newZoomTop}px, 0)`,
+    // //   transitionDuration: '500ms'
+    // // })
+
+    // this.imageZoom.left = newZoomLeft
+    // this.imageZoom.top = newZoomTop
+
+    // requestAnimationFrame(() => {
+    //   this.image.move(this.imageZoom.left, this.imageZoom.top)
     // })
-
-    this.imageZoom.left = newZoomLeft
-    this.imageZoom.top = newZoomTop
-
-    requestAnimationFrame(() => {
-      this.image.move(this.imageZoom.left, this.imageZoom.top)
-    })
   }
   
 }
