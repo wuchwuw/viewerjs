@@ -472,11 +472,16 @@ export default class Viewer {
       speed -= speed / rate
       let moveX = speed * distanceX / distance
       let moveY = speed * distanceY / distance
-      self.imageZoom.left = getOverflow(leftMin, leftMax, self.imageZoom.left + moveX)
-      self.imageZoom.top = getOverflow(topMin, topMax, self.imageZoom.top + moveY)
+      // self.imageZoom.left = getOverflow(leftMin, leftMax, self.imageZoom.left + moveX)
+      // self.imageZoom.top = getOverflow(topMin, topMax, self.imageZoom.top + moveY)
+      self.imageZoom.left -= moveX
+      self.imageZoom.top -= moveY
       self.image.move(self.imageZoom.left, self.imageZoom.top)
       if (speed < 0.1) {
         speed = 0
+        self.imageZoom.left = Math.min(Math.max(self.imageZoom.left, leftMax), leftMin)
+        self.imageZoom.top = Math.min(Math.max(self.imageZoom.top, topMax), topMin)
+        self.image.move(self.imageZoom.left, self.imageZoom.top)
       } else {
         requestAnimationFrame(step)
       }

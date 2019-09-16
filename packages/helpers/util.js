@@ -73,7 +73,6 @@ export function damping (value) {
 }
 
 export function getOverflow (min, max, value) {
-  debugger
   if ((min > value &&  max < value) || (min === value && max === value)) {
     return value
   }
