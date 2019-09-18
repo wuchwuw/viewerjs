@@ -270,9 +270,7 @@ export default class Viewer {
     //   height: this.image.height + 'px',
     //   transform: `translate3d(${this.image.left}px, ${this.image.top}px) scale(${ratio})`
     // })
-    requestAnimationFrame(() => {
-      this.image.reset()
-    })
+    this.image.reset()
   }
 
   handleWrapPointerStart (e) {
@@ -332,44 +330,6 @@ export default class Viewer {
     })
     this.image = this.images[touch.currentIndex]
     touch.currentLeft = left
-    // const { touch } = this
-    // const { el, width: transformWidth, contentWidth } = this.viewer
-    // let left = touch.diff + touch.currentLeft
-    // let absLeft = Math.abs(left)
-    // if (left > 0) {
-    //   setStyle(el, {
-    //     transform: `translate3d(0, 0, 0)`,
-    //     transitionDuration: '500ms'
-    //   })
-    //   touch.currentLeft = 0
-    // } else if (absLeft > contentWidth - transformWidth) {
-    //   setStyle(el, {
-    //     transform: `translate3d(${-contentWidth + transformWidth}px, 0, 0)`,
-    //     transitionDuration: '500ms'
-    //   })
-    //   touch.currentLeft = -contentWidth + transformWidth
-    // } else {
-    //   let over = absLeft % transformWidth
-    //   if (over > transformWidth / 2) {
-    //     let index = Math.ceil(absLeft / transformWidth)
-    //     left = index * -transformWidth - MARGIN * index
-    //     touch.currentIndex = index
-    //     setStyle(el, {
-    //       transform: `translate3d(${left}px, 0, 0)`,
-    //       transitionDuration: '300ms'
-    //     })
-    //   } else {
-    //     let index = Math.floor(absLeft / transformWidth)
-    //     left = index * -transformWidth - MARGIN * index
-    //     touch.currentIndex = index
-    //     setStyle(el, {
-    //       transform: `translate3d(${left}px, 0, 0)`,
-    //       transitionDuration: '300ms'
-    //     })
-    //   }
-    //   this.image = this.images[touch.currentIndex]
-    //   touch.currentLeft = left
-    // }
     touch.diff = 0
   }
 
@@ -400,17 +360,68 @@ export default class Viewer {
       pageX,
       pageY
     } = this.imageZoom
+
+    const {
+      width: imageWidth,
+      height: imageHeight,
+      left: imageLeft,
+      top: imageTop
+    } = this.image
+
+    const {
+      width: viewerWidth,
+      height: viewerHeight
+    } = this.viewer
+
+    const isWidthOverflow = imageWidth > viewerWidth
+    const isHeightOverflow = imageHeight > viewerHeight
+    const topMin = isHeightOverflow ? (viewerHeight - imageHeight) : imageTop
+    const leftMin = isWidthOverflow ? (viewerWidth - imageWidth) : imageLeft
+    const topMax = isHeightOverflow ? 0 : imageTop
+    const leftMax = isWidthOverflow ? 0 : imageLeft
+
     let newDiffX = touch[0].pageX - pageX
     let newDiffY = touch[0].pageY - pageY
     let newLeft = left + newDiffX
     let newTop = top + newDiffY
-
-    requestAnimationFrame(() => {
+    let overLeft, overTop, t = false
+    if (newLeft < leftMin) {
+      
+      let over = leftMin - newLeft
+      // console.log(over)
+      over = damping(over)
+      overLeft = leftMin - over
+      t = true
+    }
+    if (newLeft > leftMax) {
+      let over = newLeft - leftMax
+      over = damping(over)
+      overLeft = leftMax + over
+      t = true
+    }
+    if (newTop < topMin) {
+      let over = topMin - newTop
+      over = damping(over)
+      overTop = topMin - over
+      t = true
+    }
+    if (newTop > topMax) {
+      let over = newTop - topMax
+      over = damping(over)
+      overTop = topMax + over
+      t = true
+    }
+    if (t) {
+      setStyle(this.image.el, {
+        marginLeft: overLeft + 'px',
+        marginTop: overTop + 'px'
+      })
+    } else {
       setStyle(this.image.el, {
         marginLeft: newLeft + 'px',
         marginTop: newTop + 'px'
       })
-    })
+    }
 
     this.imageZoom.diffX = newDiffX
     this.imageZoom.diffY = newDiffY
@@ -448,10 +459,10 @@ export default class Viewer {
     // leftMax -> 0 -> leftMin
     const isWidthOverflow = imageWidth > viewerWidth
     const isHeightOverflow = imageHeight > viewerHeight
-    const topMax = isHeightOverflow ? (viewerHeight - imageHeight) : imageTop
-    const leftMax = isWidthOverflow ? (viewerWidth - imageWidth) : imageLeft
-    const topMin = isHeightOverflow ? 0 : imageTop
-    const leftMin = isWidthOverflow ? 0 : imageLeft
+    const topMin = isHeightOverflow ? (viewerHeight - imageHeight) : imageTop
+    const leftMin = isWidthOverflow ? (viewerWidth - imageWidth) : imageLeft
+    const topMax = isHeightOverflow ? 0 : imageTop
+    const leftMax = isWidthOverflow ? 0 : imageLeft
 
     const {
       pageX,
@@ -468,6 +479,7 @@ export default class Viewer {
     let speed = distance / (endTime - startTime) * 16.67
     let rate = Math.min(10, speed)
     let self = this
+    let over = false
     function step () {
       speed -= speed / rate
       let moveX = speed * distanceX / distance
@@ -476,12 +488,27 @@ export default class Viewer {
       // self.imageZoom.top = getOverflow(topMin, topMax, self.imageZoom.top + moveY)
       self.imageZoom.left -= moveX
       self.imageZoom.top -= moveY
+
+      if (self.imageZoom.left >= leftMax || self.imageZoom.left <= leftMin) {
+        self.imageZoom.left = Math.max(Math.min(self.imageZoom.left, leftMax), leftMin)
+        over = true
+      }
+      if (self.imageZoom.top >= topMax || self.imageZoom.top <= topMin) {
+        self.imageZoom.top = Math.max(Math.min(self.imageZoom.top, topMax), topMin)
+        over = true
+      }
+      
+      if (over) {
+        addClass(self.image.el, 'viewer-image-zoom')
+        speed = 0
+        over = false
+      }
       self.image.move(self.imageZoom.left, self.imageZoom.top)
       if (speed < 0.1) {
         speed = 0
-        self.imageZoom.left = Math.min(Math.max(self.imageZoom.left, leftMax), leftMin)
-        self.imageZoom.top = Math.min(Math.max(self.imageZoom.top, topMax), topMin)
-        self.image.move(self.imageZoom.left, self.imageZoom.top)
+        // self.imageZoom.left = Math.min(Math.max(self.imageZoom.left, leftMax), leftMin)
+        // self.imageZoom.top = Math.min(Math.max(self.imageZoom.top, topMax), topMin)
+        // self.image.move(self.imageZoom.left, self.imageZoom.top)
       } else {
         requestAnimationFrame(step)
       }

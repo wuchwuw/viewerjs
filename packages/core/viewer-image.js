@@ -98,6 +98,7 @@ export default class ViewerImage {
   }
 
   move (left, top) {
+    // todo requestAnimationFrame
     setStyle(this.el, {
       marginLeft: left + 'px',
       marginTop: top + 'px'

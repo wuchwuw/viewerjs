@@ -5,7 +5,6 @@ export function addClass (element, className) {
     element.classList.add(className)
   } else {
     let classNames = element.className
-    console.log(classNames)
     if (classNames.indexOf(className) < 0) {
       element.className = `${classNames} ${className}`
     }
