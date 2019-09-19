@@ -27,6 +27,7 @@ export default class Viewer {
     this.zoomMoving = false
     this.lastClickTime = 0
     this.mutipleZooming = false
+    this.mutiZoom = false
     this.viewer = {
       el: null,
       height: window.innerHeight,
@@ -140,8 +141,12 @@ export default class Viewer {
       let now = Date.now()
       if (now - this.lastClickTime < 300) {
         if (this.zoomMoving) return
-        if (this.zooming) {
-          this.zoom(this.image.oldRatio, this.imageZoom.pointer)
+        if (this.mutiZoom) {
+          this.image.resetInit()
+          this.zooming = false
+          this.mutiZoom = false
+        } else if (this.zooming) {
+          this.zoom(this.image.scale, this.imageZoom.pointer)
           this.zooming = false
         } else {
           this.zoom(2, (this.imageZoom.pointer = pointer))
@@ -153,8 +158,10 @@ export default class Viewer {
   }
 
   handleMutipleZoomStart (e) {
+    console.log('handleMutipleZoomStart')
     removeClass(this.image.el, 'viewer-image-zoom')
     this.mutipleZooming = true
+    this.mutiZoom = true
     this.zooming = true
     let pointers = e.targetTouches
     let pointer1 = pointers[0]
@@ -168,6 +175,7 @@ export default class Viewer {
   }
 
   handleMutipleZoomMove (e) {
+    console.log('handleMutipleZoomMove')
     removeClass(this.image.el, 'viewer-image-zoom')
     let pointers = e.targetTouches
     let pointer1 = pointers[0]
@@ -207,15 +215,17 @@ export default class Viewer {
   }
 
   handleMutipleZoomEnd (e) {
+    console.log('handleMutipleZoomEnd')
     addClass(this.image.el, 'viewer-image-zoom')
     this.mutipleZooming = false
 
     const {
-      init
+      init,
     } = this.image
 
     if (this.mutipleZoom.width < init.width || this.mutipleZoom.height < init.height) {
       this.zooming = false
+      this.mutiZoom = false
       this.image.width = init.width
       this.image.height = init.height
       this.image.left = init.left
@@ -248,7 +258,7 @@ export default class Viewer {
     const newHeight = naturalHeight * ratio
     const offsetWidth = newWidth - width
     const offsetHeight = newHeight - height
-    this.image.oldRatio = Number((width / naturalWidth).toFixed(2))
+    this.image.scale = Number((width / naturalWidth).toFixed(2))
 
     if (pointers) {
       // todo bugfix imageZoom.left image.left
@@ -274,6 +284,7 @@ export default class Viewer {
   }
 
   handleWrapPointerStart (e) {
+    console.log('handleWrapPointerStart')
     const touch = e.targetTouches
     if (touch && touch.length === 1) {
       this.touch.pageX = touch[0].pageX
@@ -282,6 +293,7 @@ export default class Viewer {
   }
 
   handleWrapPointerMove (e) {
+    console.log('handleWrapPointerMove')
     const touch = e.targetTouches
     const { currentLeft } = this.touch
     const { contentWidth, width: transformWidth } = this.viewer
@@ -302,6 +314,7 @@ export default class Viewer {
   }
 
   handleWrapPointerEnd (e) {
+    console.log('handleWrapPointerEnd')
     const { touch } = this
     const { el, width: transformWidth } = this.viewer
     let left = touch.diff + touch.currentLeft
@@ -334,6 +347,7 @@ export default class Viewer {
   }
 
   handleImageZoomStart (e) {
+    console.log('handleImageZoomStart')
     const touch = e.targetTouches
     if (touch && touch.length === 1) {
       this.imageZoom.pageX = touch[0].pageX
@@ -345,6 +359,7 @@ export default class Viewer {
   }
 
   handleImageZoomMove (e) {
+    console.log('handleImageZoomMove')
     removeClass(this.image.el, 'viewer-image-zoom')
     this.zoomMoving = true
 
@@ -361,67 +376,72 @@ export default class Viewer {
       pageY
     } = this.imageZoom
 
-    const {
-      width: imageWidth,
-      height: imageHeight,
-      left: imageLeft,
-      top: imageTop
-    } = this.image
+    // const {
+    //   width: imageWidth,
+    //   height: imageHeight,
+    //   left: imageLeft,
+    //   top: imageTop
+    // } = this.image
 
-    const {
-      width: viewerWidth,
-      height: viewerHeight
-    } = this.viewer
+    // const {
+    //   width: viewerWidth,
+    //   height: viewerHeight
+    // } = this.viewer
 
-    const isWidthOverflow = imageWidth > viewerWidth
-    const isHeightOverflow = imageHeight > viewerHeight
-    const topMin = isHeightOverflow ? (viewerHeight - imageHeight) : imageTop
-    const leftMin = isWidthOverflow ? (viewerWidth - imageWidth) : imageLeft
-    const topMax = isHeightOverflow ? 0 : imageTop
-    const leftMax = isWidthOverflow ? 0 : imageLeft
+    // const isWidthOverflow = imageWidth > viewerWidth
+    // const isHeightOverflow = imageHeight > viewerHeight
+    // const topMin = isHeightOverflow ? (viewerHeight - imageHeight) : imageTop
+    // const leftMin = isWidthOverflow ? (viewerWidth - imageWidth) : imageLeft
+    // const topMax = isHeightOverflow ? 0 : imageTop
+    // const leftMax = isWidthOverflow ? 0 : imageLeft
 
     let newDiffX = touch[0].pageX - pageX
     let newDiffY = touch[0].pageY - pageY
     let newLeft = left + newDiffX
     let newTop = top + newDiffY
-    let overLeft, overTop, t = false
-    if (newLeft < leftMin) {
+    // let overLeft, overTop, t = false
+    // if (newLeft < leftMin) {
       
-      let over = leftMin - newLeft
-      // console.log(over)
-      over = damping(over)
-      overLeft = leftMin - over
-      t = true
-    }
-    if (newLeft > leftMax) {
-      let over = newLeft - leftMax
-      over = damping(over)
-      overLeft = leftMax + over
-      t = true
-    }
-    if (newTop < topMin) {
-      let over = topMin - newTop
-      over = damping(over)
-      overTop = topMin - over
-      t = true
-    }
-    if (newTop > topMax) {
-      let over = newTop - topMax
-      over = damping(over)
-      overTop = topMax + over
-      t = true
-    }
-    if (t) {
-      setStyle(this.image.el, {
-        marginLeft: overLeft + 'px',
-        marginTop: overTop + 'px'
-      })
-    } else {
-      setStyle(this.image.el, {
-        marginLeft: newLeft + 'px',
-        marginTop: newTop + 'px'
-      })
-    }
+    //   let over = leftMin - newLeft
+    //   // console.log(over)
+    //   over = damping(over)
+    //   overLeft = leftMin - over
+    //   t = true
+    // }
+    // if (newLeft > leftMax) {
+    //   let over = newLeft - leftMax
+    //   over = damping(over)
+    //   overLeft = leftMax + over
+    //   t = true
+    // }
+    // if (newTop < topMin) {
+    //   let over = topMin - newTop
+    //   over = damping(over)
+    //   overTop = topMin - over
+    //   t = true
+    // }
+    // if (newTop > topMax) {
+    //   let over = newTop - topMax
+    //   over = damping(over)
+    //   overTop = topMax + over
+    //   t = true
+    // }
+    // if (t) {
+    //   setStyle(this.image.el, {
+    //     marginLeft: overLeft + 'px',
+    //     marginTop: overTop + 'px'
+    //   })
+    // } else {
+    //   setStyle(this.image.el, {
+    //     marginLeft: newLeft + 'px',
+    //     marginTop: newTop + 'px'
+    //   })
+    // }
+
+    setStyle(this.image.el, {
+      marginLeft: newLeft + 'px',
+      marginTop: newTop + 'px'
+    })
 
     this.imageZoom.diffX = newDiffX
     this.imageZoom.diffY = newDiffY
@@ -434,6 +454,7 @@ export default class Viewer {
   }
   handleImageZoomEnd (e) {
     removeClass(this.image.el, 'viewer-image-zoom')
+    console.log('handleImageZoomEnd')
     if (!this.zoomMoving) {
       return
     }

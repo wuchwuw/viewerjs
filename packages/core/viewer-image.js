@@ -16,7 +16,6 @@ export default class ViewerImage {
       this.naturalWidth = image.naturalWidth
       this.naturalHeight = image.naturalHeight
       this.ratio = image.naturalWidth / image.naturalHeight
-      this.oldRatio = image.naturalWidth / image.naturalHeight
       this.src = image.src
       this.width = viewerWidth
       this.height = viewerHeight
@@ -32,6 +31,8 @@ export default class ViewerImage {
 
       this.width = Math.min(this.width, viewerWidth)
       this.height = Math.min(this.height, viewerHeight)
+
+      this.scale = this.width / image.naturalHeight
 
       this.left = (viewerWidth - this.width) / 2
       this.top = (viewerHeight - this.height) / 2
@@ -89,6 +90,20 @@ export default class ViewerImage {
   }
 
   reset () {
+    setStyle(this.el, {
+      width: this.width + 'px',
+      height: this.height + 'px',
+      marginLeft: this.left + 'px',
+      marginTop: this.top + 'px'
+    })
+  }
+
+  resetInit () {
+    this.width = this.init.width
+    this.height = this.init.height
+    this.left = this.init.left
+    this.top = this.init.top
+    addClass(this.el, 'viewer-image-zoom')
     setStyle(this.el, {
       width: this.width + 'px',
       height: this.height + 'px',

@@ -13,7 +13,20 @@
       <img src="https://avatars0.githubusercontent.com/u/3456749?s=460&v=4" alt="">
       <img src="https://avatars0.githubusercontent.com/u/3456749?s=460&v=4" alt="">
     </div>
+    <div id="h" style="height: 100px; width: 100px; background: red"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.js"></script>
     <script src="/__build__/main.js"></script>
+    <script>
+      debugger
+      var h = document.querySelector('#h')
+      var hammer = new Hammer(h);
+
+      // Subscribe to a quick start event: press, tap, or doubletap.
+      // For a full list of quick start events, read the documentation.
+      hammer.on('tap', function(e) {
+        console.log('tap')
+      });
+    </script>
     <!-- <div id="zoom-wrap" style="width:300px;height:300px">
       <img id="image" height="300" width="300" src="https://avatars0.githubusercontent.com/u/3456749?s=460&v=4" alt="">
     </div>
@@ -52,7 +65,7 @@
         }
       })
     </script> -->
-    <!-- <script src="//cdn.jsdelivr.net/npm/eruda"></script>
-    <script>eruda.init();</script> -->
+    <script src="//cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
   </body>
 </html>
