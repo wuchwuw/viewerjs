@@ -10,7 +10,9 @@ import {
   getDist,
   getPointersCenter,
   damping,
-  getOverflow
+  getOverflow,
+  getTouches,
+  removeTouches
 } from '../helpers/util'
 
 import ViewerContainer from './viewer-container'
@@ -28,6 +30,7 @@ export default class Viewer {
     this.lastClickTime = 0
     this.mutipleZooming = false
     this.mutiZoom = false
+    this.action = ''
     this.viewer = {
       el: null,
       height: window.innerHeight,
@@ -55,6 +58,8 @@ export default class Viewer {
       diffY: 0,
       dist: 0
     }
+    this.touches = []
+    this.ids = new Set()
     this.container = new ViewerContainer()
     this.initViewer()
     this.initImage(source)
@@ -95,41 +100,66 @@ export default class Viewer {
   }
 
   onTouchStart (e) {
-    if (e.touches.length <= 1) {
-      if ((this.zooming || this.mutipleZooming) && e.target === this.image.el) {
+    getTouches(e, this.touches)
+    console.log(e)
+    if (this.touches.length === 1) {
+      if (this.zooming) {
         this.handleImageZoomStart(e)
       } else if (!this.zooming && !this.mutipleZooming){
         this.handleWrapPointerStart(e)
       }
-    } else if (e.target === this.image.el) {
+    } else {
       this.handleMutipleZoomStart(e)
     }
   }
 
   onTouchMove (e) {
-    if (e.touches.length <= 1) {
-      if ((this.zooming || this.mutipleZooming) && e.target === this.image.el) {
+    console.log(e)
+    if (this.touches.length === 1) {
+      if (this.zooming) {
         this.handleImageZoomMove(e)
-      } else if (!this.zooming && !this.mutipleZooming){
+      } else if (!this.zooming && !this.mutipleZooming) {
         this.handleWrapPointerMove(e)
       }
-    } else if (e.target === this.image.el) {
+    } else {
       this.handleMutipleZoomMove(e)
     }
   }
 
   onTouchEnd (e) {
-    if (!this.zooming && !this.mutipleZooming) {
-      this.handleWrapPointerEnd(e)
-    } else if (this.zooming && this.mutipleZooming) {
+    if (this.touches.length === 1) {
+      if (this.mutipleZooming) return
+      if (this.zooming) {
+        this.handleImageZoomEnd(e)
+      } else if (!this.zooming) {
+        this.handleWrapPointerEnd(e)
+      }
+    } else {
       this.handleMutipleZoomEnd(e)
-    } else if (this.zooming && !this.mutipleZooming) {
-      this.handleImageZoomEnd(e)
+    }
+    removeTouches(e, this.touches)
+    if (this.touches.length === 1) {
+      let id = this.touches[0].identifier
+      let allTouches = e.touches
+      let i = 0
+      while (i < allTouches.length) {
+        if (id === allTouches[i].identifier) {
+          this.touch.pageX = allTouches[i].pageX
+          this.touch.pageY = allTouches[i].pageY
+          this.imageZoom.pageX = allTouches[i].pageX
+          this.imageZoom.pageY = allTouches[i].pageY
+          this.imageZoom.timerready = true
+          this.imageZoom.startX = allTouches[i].pageX
+          this.imageZoom.startY = allTouches[i].pageY
+          return
+        }
+        i++
+      }
     }
   }
 
   onClick (e) {
-    if (this.image.transitioning) return
+    // if (this.image.transitioning) return
     // ios div pointer
 
     //todo handle pointer
@@ -158,12 +188,11 @@ export default class Viewer {
   }
 
   handleMutipleZoomStart (e) {
-    console.log('handleMutipleZoomStart')
     removeClass(this.image.el, 'viewer-image-zoom')
     this.mutipleZooming = true
     this.mutiZoom = true
     this.zooming = true
-    let pointers = e.targetTouches
+    let pointers = this.touches
     let pointer1 = pointers[0]
     let pointer2 = pointers[1]
 
@@ -177,7 +206,7 @@ export default class Viewer {
   handleMutipleZoomMove (e) {
     console.log('handleMutipleZoomMove')
     removeClass(this.image.el, 'viewer-image-zoom')
-    let pointers = e.targetTouches
+    let pointers = e.touches
     let pointer1 = pointers[0]
     let pointer2 = pointers[1]
 
@@ -230,13 +259,16 @@ export default class Viewer {
       this.image.height = init.height
       this.image.left = init.left
       this.image.top = init.top
-
+      this.imageZoom.left = init.left
+      this.imageZoom.top = init.top
       this.image.reset()
     } else {
       this.image.width = this.mutipleZoom.width
       this.image.height = this.mutipleZoom.height
       this.image.left = this.mutipleZoom.left
       this.image.top = this.mutipleZoom.top
+      this.imageZoom.left = this.mutipleZoom.left
+      this.imageZoom.top = this.mutipleZoom.top
     }
   }
 
@@ -285,7 +317,7 @@ export default class Viewer {
 
   handleWrapPointerStart (e) {
     console.log('handleWrapPointerStart')
-    const touch = e.targetTouches
+    const touch = this.touches
     if (touch && touch.length === 1) {
       this.touch.pageX = touch[0].pageX
       this.touch.pageY = touch[0].pageY
@@ -294,11 +326,13 @@ export default class Viewer {
 
   handleWrapPointerMove (e) {
     console.log('handleWrapPointerMove')
-    const touch = e.targetTouches
+    console.log(this.touches)
+    const touch = e.touches
     const { currentLeft } = this.touch
     const { contentWidth, width: transformWidth } = this.viewer
     let diff = touch[0].pageX - this.touch.pageX
     let left = currentLeft + diff
+    console.log(left)
     let absLeft = Math.abs(left)
     if (left > 0) {
       left = damping(left)
@@ -348,7 +382,7 @@ export default class Viewer {
 
   handleImageZoomStart (e) {
     console.log('handleImageZoomStart')
-    const touch = e.targetTouches
+    const touch = this.touches
     if (touch && touch.length === 1) {
       this.imageZoom.pageX = touch[0].pageX
       this.imageZoom.pageY = touch[0].pageY
@@ -368,7 +402,7 @@ export default class Viewer {
       this.imageZoom.timerready = false
     }
 
-    const touch = e.targetTouches
+    const touch = e.touches
     const {
       left,
       top,

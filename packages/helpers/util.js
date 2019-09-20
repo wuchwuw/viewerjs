@@ -87,3 +87,32 @@ export function getOverflow (min, max, value) {
     return max + diff
   }
 }
+
+export function getTouches (e, currentTouches) {
+  // todo 通过ids过滤touch
+  if (currentTouches.length >= 2) return
+  let changed = e.changedTouches
+  let i = 0
+  while (i < changed.length) {
+    if (currentTouches.length === 2) return
+    currentTouches.push(changed[i])
+    i++
+  }
+  return currentTouches
+}
+
+export function removeTouches (e, currentTouches) {
+  let changed = e.changedTouches
+  let i = 0
+  while (i < changed.length) {
+    let id = changed[i].identifier
+    let index = currentTouches.findIndex(touch => {
+      return touch.identifier === id
+    })
+    if (index > -1) {
+      currentTouches.splice(index, 1)
+    }
+    i++
+  }
+  return currentTouches
+}
