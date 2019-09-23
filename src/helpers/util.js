@@ -72,36 +72,29 @@ export function damping (value) {
   return scaleedValue
 }
 
-export function getOverflow (min, max, value) {
-  if ((min > value &&  max < value) || (min === value && max === value)) {
-    return value
-  }
-  let diff
-  if (min > value) {
-    diff = min - value
-    diff = damping(diff)
-    return min + diff
-  } else if (max < value) {
-    diff = value - max
-    diff = damping(diff)
-    return max + diff
-  }
-}
-
-export function getTouches (e, currentTouches) {
-  // todo 通过ids过滤touch
+export function getTouches (e, currentTouches, ids) {
+  // todo bugfix
   if (currentTouches.length >= 2) return
   let changed = e.changedTouches
   let i = 0
   while (i < changed.length) {
     if (currentTouches.length === 2) return
-    currentTouches.push(changed[i])
+    const id = changed[i].identifier
+    if (!ids.has(id)) {
+      currentTouches.push(changed[i])
+      ids.add(id)
+    }
     i++
   }
   return currentTouches
 }
 
-export function removeTouches (e, currentTouches) {
+
+export function collectTouches (e, currentTouches, ids) {
+  let changed = e.changedTouches
+}
+
+export function removeTouches (e, currentTouches, ids) {
   let changed = e.changedTouches
   let i = 0
   while (i < changed.length) {
@@ -111,6 +104,7 @@ export function removeTouches (e, currentTouches) {
     })
     if (index > -1) {
       currentTouches.splice(index, 1)
+      ids.delete(id)
     }
     i++
   }

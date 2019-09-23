@@ -1,1 +1,4 @@
-// todo
+const path = require('path')
+
+const banner = 
+  ``

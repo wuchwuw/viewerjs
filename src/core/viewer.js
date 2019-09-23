@@ -10,7 +10,6 @@ import {
   getDist,
   getPointersCenter,
   damping,
-  getOverflow,
   getTouches,
   removeTouches
 } from '../helpers/util'
@@ -45,8 +44,6 @@ export default class Viewer {
       currentIndex: 0
     }
     this.imageZoom = {
-      left: 0,
-      top: 0,
       diffX: 0,
       diffY: 0,
       pageX: 0,
@@ -59,7 +56,7 @@ export default class Viewer {
       dist: 0
     }
     this.touches = []
-    this.ids = new Set()
+    this.touchIds = new Set()
     this.container = new ViewerContainer()
     this.initViewer()
     this.initImage(source)
@@ -83,10 +80,6 @@ export default class Viewer {
     addEventListener(this.viewer.el, 'touchstart', this.onTouchStart.bind(this))
     addEventListener(this.viewer.el, 'touchmove', this.onTouchMove.bind(this))
     addEventListener(this.viewer.el, 'touchend', this.onTouchEnd.bind(this))
-    addEventListener(this.viewer.el, 'click', this.onClick.bind(this))
-    // addEventListener(window, 'gesturestart', (e) => { e.preventDefault() })
-    // addEventListener(window, 'gesturemove', (e) => { e.preventDefault() })
-    // addEventListener(window, 'gestureend', (e) => { e.preventDefault() })
   }
 
   show () {
@@ -100,9 +93,30 @@ export default class Viewer {
   }
 
   onTouchStart (e) {
-    getTouches(e, this.touches)
-    console.log(e)
+    getTouches(e, this.touches, this.touchIds)
+
     if (this.touches.length === 1) {
+      let pointer = [this.touches[0]]
+      console.log(pointer)
+      if (e.target === this.image.el) {
+        let now = Date.now()
+        if (now - this.lastClickTime < 300) {
+          if (this.zoomMoving) return
+          if (this.mutiZoom || this.zooming) {
+            this.image.resetInit()
+            this.zooming = false
+            this.mutiZoom = false
+          // } else if (this.zooming) {
+          //   this.zoom(this.image.scale, this.imageZoom.pointer)
+          //   this.zooming = false
+          } else {
+            this.zoom(2, (this.imageZoom.pointer = pointer))
+            this.zooming = true
+          }
+        }
+        this.lastClickTime = now
+        e.preventDefault()
+      }
       if (this.zooming) {
         this.handleImageZoomStart(e)
       } else if (!this.zooming && !this.mutipleZooming){
@@ -137,7 +151,9 @@ export default class Viewer {
     } else {
       this.handleMutipleZoomEnd(e)
     }
-    removeTouches(e, this.touches)
+
+    removeTouches(e, this.touches, this.touchIds)
+
     if (this.touches.length === 1) {
       let id = this.touches[0].identifier
       let allTouches = e.touches
@@ -155,35 +171,6 @@ export default class Viewer {
         }
         i++
       }
-    }
-  }
-
-  onClick (e) {
-    // if (this.image.transitioning) return
-    // ios div pointer
-
-    //todo handle pointer
-    let pointer = [{
-      pageX: e.pageX,
-      pageY: e.pageY
-    }]
-    if (e.target === this.image.el) {
-      let now = Date.now()
-      if (now - this.lastClickTime < 300) {
-        if (this.zoomMoving) return
-        if (this.mutiZoom) {
-          this.image.resetInit()
-          this.zooming = false
-          this.mutiZoom = false
-        } else if (this.zooming) {
-          this.zoom(this.image.scale, this.imageZoom.pointer)
-          this.zooming = false
-        } else {
-          this.zoom(2, (this.imageZoom.pointer = pointer))
-          this.zooming = true
-        }
-      }
-      this.lastClickTime = now
     }
   }
 
@@ -249,7 +236,7 @@ export default class Viewer {
     this.mutipleZooming = false
 
     const {
-      init,
+      init
     } = this.image
 
     if (this.mutipleZoom.width < init.width || this.mutipleZoom.height < init.height) {
@@ -259,16 +246,12 @@ export default class Viewer {
       this.image.height = init.height
       this.image.left = init.left
       this.image.top = init.top
-      this.imageZoom.left = init.left
-      this.imageZoom.top = init.top
       this.image.reset()
     } else {
       this.image.width = this.mutipleZoom.width
       this.image.height = this.mutipleZoom.height
       this.image.left = this.mutipleZoom.left
       this.image.top = this.mutipleZoom.top
-      this.imageZoom.left = this.mutipleZoom.left
-      this.imageZoom.top = this.mutipleZoom.top
     }
   }
 
@@ -303,9 +286,6 @@ export default class Viewer {
     }
     this.image.width = newWidth
     this.image.height = newHeight
-    
-    this.imageZoom.left = this.image.left
-    this.imageZoom.top = this.image.top
 
     // setStyle(this.image.el, {
     //   width: this.image.width + 'px',
@@ -372,8 +352,8 @@ export default class Viewer {
       left = touch.currentLeft
     }
     setStyle(el, {
-      transform: `translate3d(${left}px, 0, 0)`,
-      transitionDuration: '300ms'
+      'webkitTransform': `translate3d(${left}px, 0, 0)`,
+      'webkitTransitionDuration': '300ms'
     })
     this.image = this.images[touch.currentIndex]
     touch.currentLeft = left
@@ -393,6 +373,7 @@ export default class Viewer {
   }
 
   handleImageZoomMove (e) {
+    console.log(this.touches)
     console.log('handleImageZoomMove')
     removeClass(this.image.el, 'viewer-image-zoom')
     this.zoomMoving = true
@@ -403,75 +384,22 @@ export default class Viewer {
     }
 
     const touch = e.touches
+
     const {
-      left,
-      top,
       pageX,
       pageY
     } = this.imageZoom
 
-    // const {
-    //   width: imageWidth,
-    //   height: imageHeight,
-    //   left: imageLeft,
-    //   top: imageTop
-    // } = this.image
-
-    // const {
-    //   width: viewerWidth,
-    //   height: viewerHeight
-    // } = this.viewer
-
-    // const isWidthOverflow = imageWidth > viewerWidth
-    // const isHeightOverflow = imageHeight > viewerHeight
-    // const topMin = isHeightOverflow ? (viewerHeight - imageHeight) : imageTop
-    // const leftMin = isWidthOverflow ? (viewerWidth - imageWidth) : imageLeft
-    // const topMax = isHeightOverflow ? 0 : imageTop
-    // const leftMax = isWidthOverflow ? 0 : imageLeft
+    const {
+      left,
+      top
+    } = this.image
 
     let newDiffX = touch[0].pageX - pageX
     let newDiffY = touch[0].pageY - pageY
     let newLeft = left + newDiffX
     let newTop = top + newDiffY
-    // let overLeft, overTop, t = false
-    // if (newLeft < leftMin) {
-      
-    //   let over = leftMin - newLeft
-    //   // console.log(over)
-    //   over = damping(over)
-    //   overLeft = leftMin - over
-    //   t = true
-    // }
-    // if (newLeft > leftMax) {
-    //   let over = newLeft - leftMax
-    //   over = damping(over)
-    //   overLeft = leftMax + over
-    //   t = true
-    // }
-    // if (newTop < topMin) {
-    //   let over = topMin - newTop
-    //   over = damping(over)
-    //   overTop = topMin - over
-    //   t = true
-    // }
-    // if (newTop > topMax) {
-    //   let over = newTop - topMax
-    //   over = damping(over)
-    //   overTop = topMax + over
-    //   t = true
-    // }
-    // if (t) {
-    //   setStyle(this.image.el, {
-    //     marginLeft: overLeft + 'px',
-    //     marginTop: overTop + 'px'
-    //   })
-    // } else {
-    //   setStyle(this.image.el, {
-    //     marginLeft: newLeft + 'px',
-    //     marginTop: newTop + 'px'
-    //   })
-    // }
-
+  
     setStyle(this.image.el, {
       marginLeft: newLeft + 'px',
       marginTop: newTop + 'px'
@@ -479,15 +407,16 @@ export default class Viewer {
 
     this.imageZoom.diffX = newDiffX
     this.imageZoom.diffY = newDiffY
-    this.imageZoom.left = newLeft
-    this.imageZoom.top = newTop
+    this.image.left = newLeft
+    this.image.top = newTop
     this.imageZoom.pageX = touch[0].pageX
     this.imageZoom.pageY = touch[0].pageY
     // this.image.left = newLeft
     // this.image.top = newTop
   }
+  
   handleImageZoomEnd (e) {
-    removeClass(this.image.el, 'viewer-image-zoom')
+    // removeClass(this.image.el, 'viewer-image-zoom')
     console.log('handleImageZoomEnd')
     if (!this.zoomMoving) {
       return
@@ -541,15 +470,15 @@ export default class Viewer {
       let moveY = speed * distanceY / distance
       // self.imageZoom.left = getOverflow(leftMin, leftMax, self.imageZoom.left + moveX)
       // self.imageZoom.top = getOverflow(topMin, topMax, self.imageZoom.top + moveY)
-      self.imageZoom.left -= moveX
-      self.imageZoom.top -= moveY
+      self.image.left -= moveX
+      self.image.top -= moveY
 
-      if (self.imageZoom.left >= leftMax || self.imageZoom.left <= leftMin) {
-        self.imageZoom.left = Math.max(Math.min(self.imageZoom.left, leftMax), leftMin)
+      if (self.image.left >= leftMax || self.image.left <= leftMin) {
+        self.image.left = Math.max(Math.min(self.image.left, leftMax), leftMin)
         over = true
       }
-      if (self.imageZoom.top >= topMax || self.imageZoom.top <= topMin) {
-        self.imageZoom.top = Math.max(Math.min(self.imageZoom.top, topMax), topMin)
+      if (self.image.top >= topMax || self.image.top <= topMin) {
+        self.image.top = Math.max(Math.min(self.image.top, topMax), topMin)
         over = true
       }
       
@@ -558,7 +487,7 @@ export default class Viewer {
         speed = 0
         over = false
       }
-      self.image.move(self.imageZoom.left, self.imageZoom.top)
+      self.image.move(self.image.left, self.image.top)
       if (speed < 0.1) {
         speed = 0
         // self.imageZoom.left = Math.min(Math.max(self.imageZoom.left, leftMax), leftMin)

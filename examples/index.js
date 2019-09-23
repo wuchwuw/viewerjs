@@ -1,5 +1,5 @@
-import Viewer from '../packages'
-import '../packages/style/index.css'
+import Viewer from '../src'
+import '../src/style/index.css'
 
 let source = document.getElementById('container')
 let v = new Viewer(source)
