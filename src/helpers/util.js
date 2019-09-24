@@ -72,26 +72,34 @@ export function damping (value) {
   return scaleedValue
 }
 
-export function getTouches (e, currentTouches, ids) {
-  // todo bugfix
+export function getTouches (e, currentTouches, ids, targetEl) {
   if (currentTouches.length >= 2) return
-  let changed = e.changedTouches
+  let target = e.targetTouches
   let i = 0
-  while (i < changed.length) {
+  while (i < target.length) {
     if (currentTouches.length === 2) return
-    const id = changed[i].identifier
-    if (!ids.has(id)) {
-      currentTouches.push(changed[i])
+    const id = target[i].identifier
+    const touch = target[i]
+    if (!ids.has(id) && touch.target === targetEl) {
+      currentTouches.push(touch)
       ids.add(id)
     }
     i++
   }
-  return currentTouches
 }
 
 
 export function collectTouches (e, currentTouches, ids) {
-  let changed = e.changedTouches
+  let changed = e.targetTouches
+  ids.forEach(id => {
+    let i = 0
+    while (i < changed.length) {
+      if (id === changed[i].identifier) {
+        currentTouches.splice(i, 1, changed[i])
+      }
+      i ++
+    }
+  })
 }
 
 export function removeTouches (e, currentTouches, ids) {
@@ -99,14 +107,11 @@ export function removeTouches (e, currentTouches, ids) {
   let i = 0
   while (i < changed.length) {
     let id = changed[i].identifier
-    let index = currentTouches.findIndex(touch => {
-      return touch.identifier === id
-    })
+    let index = currentTouches.findIndex(touch => touch.identifier === id)
     if (index > -1) {
       currentTouches.splice(index, 1)
       ids.delete(id)
     }
     i++
   }
-  return currentTouches
 }

@@ -11,7 +11,8 @@ import {
   getPointersCenter,
   damping,
   getTouches,
-  removeTouches
+  removeTouches,
+  collectTouches
 } from '../helpers/util'
 
 import ViewerContainer from './viewer-container'
@@ -72,6 +73,7 @@ export default class Viewer {
     })
     this.viewer.contentWidth = this.viewer.width * this.images.length + (this.images.length - 1) * MARGIN
     this.image = this.images[this.touch.currentIndex]
+    this.container.updateText(`${this.touch.currentIndex + 1}/${this.images.length}`)
   }
 
   initViewer () {
@@ -93,8 +95,7 @@ export default class Viewer {
   }
 
   onTouchStart (e) {
-    getTouches(e, this.touches, this.touchIds)
-
+    getTouches(e, this.touches, this.touchIds, this.image.el)
     if (this.touches.length === 1) {
       let pointer = [this.touches[0]]
       console.log(pointer)
@@ -128,7 +129,7 @@ export default class Viewer {
   }
 
   onTouchMove (e) {
-    console.log(e)
+    collectTouches(e, this.touches, this.touchIds)
     if (this.touches.length === 1) {
       if (this.zooming) {
         this.handleImageZoomMove(e)
@@ -312,7 +313,6 @@ export default class Viewer {
     const { contentWidth, width: transformWidth } = this.viewer
     let diff = touch[0].pageX - this.touch.pageX
     let left = currentLeft + diff
-    console.log(left)
     let absLeft = Math.abs(left)
     if (left > 0) {
       left = damping(left)
@@ -358,6 +358,7 @@ export default class Viewer {
     this.image = this.images[touch.currentIndex]
     touch.currentLeft = left
     touch.diff = 0
+    this.container.updateText(`${touch.currentIndex + 1}/${this.images.length}`)
   }
 
   handleImageZoomStart (e) {
@@ -373,7 +374,6 @@ export default class Viewer {
   }
 
   handleImageZoomMove (e) {
-    console.log(this.touches)
     console.log('handleImageZoomMove')
     removeClass(this.image.el, 'viewer-image-zoom')
     this.zoomMoving = true
@@ -411,8 +411,6 @@ export default class Viewer {
     this.image.top = newTop
     this.imageZoom.pageX = touch[0].pageX
     this.imageZoom.pageY = touch[0].pageY
-    // this.image.left = newLeft
-    // this.image.top = newTop
   }
   
   handleImageZoomEnd (e) {
@@ -460,6 +458,9 @@ export default class Viewer {
     let distanceX = startX - pageX
     let distanceY = startY - pageY
     let distance = getDist(distanceX, distanceY)
+
+    if (distance === 0) return
+    
     let speed = distance / (endTime - startTime) * 16.67
     let rate = Math.min(10, speed)
     let self = this
@@ -468,8 +469,7 @@ export default class Viewer {
       speed -= speed / rate
       let moveX = speed * distanceX / distance
       let moveY = speed * distanceY / distance
-      // self.imageZoom.left = getOverflow(leftMin, leftMax, self.imageZoom.left + moveX)
-      // self.imageZoom.top = getOverflow(topMin, topMax, self.imageZoom.top + moveY)
+
       self.image.left -= moveX
       self.image.top -= moveY
 
@@ -490,35 +490,14 @@ export default class Viewer {
       self.image.move(self.image.left, self.image.top)
       if (speed < 0.1) {
         speed = 0
-        // self.imageZoom.left = Math.min(Math.max(self.imageZoom.left, leftMax), leftMin)
-        // self.imageZoom.top = Math.min(Math.max(self.imageZoom.top, topMax), topMin)
-        // self.image.move(self.imageZoom.left, self.imageZoom.top)
       } else {
         requestAnimationFrame(step)
       }
     }
 
     step()
-
-    // const {
-    //   left: zoomLeft,
-    //   top: zoomTop
-    // } = this.imageZoom
-
-    // let newZoomLeft = Math.min(Math.max(zoomLeft, leftMax), leftMin)
-    // let newZoomTop = Math.min(Math.max(zoomTop, topMax), topMin)
-
-    // // setStyle(this.image.el, {
-    // //   transform: `translate3d(${newZoomLeft}px, ${newZoomTop}px, 0)`,
-    // //   transitionDuration: '500ms'
-    // // })
-
-    // this.imageZoom.left = newZoomLeft
-    // this.imageZoom.top = newZoomTop
-
-    // requestAnimationFrame(() => {
-    //   this.image.move(this.imageZoom.left, this.imageZoom.top)
-    // })
   }
+
+  view (index) {}
   
 }

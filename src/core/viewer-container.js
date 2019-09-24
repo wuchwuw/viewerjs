@@ -13,6 +13,7 @@ export default class ViewerContainer {
     this.parent = document.body
     this.el = null
     this.closeEl = null
+    this.textEl = null
     this.display = false
 
     this.init()
@@ -27,6 +28,7 @@ export default class ViewerContainer {
 
     this.el = container
     this.closeEl = container.querySelector('.viewer-close')
+    this.textEl = container.querySelector('.viewer-index')
   }
 
   initEvent () {
@@ -56,5 +58,9 @@ export default class ViewerContainer {
     if (!this.display) {
       removeClass(el, 'viewer-show')
     }
+  }
+
+  updateText (text) {
+    this.textEl.innerHTML = text
   }
 }
