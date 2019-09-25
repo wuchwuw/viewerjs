@@ -98,11 +98,13 @@ export default class Viewer {
     getTouches(e, this.touches, this.touchIds, this.image.el)
     if (this.touches.length === 1) {
       let pointer = [this.touches[0]]
-      console.log(pointer)
       if (e.target === this.image.el) {
         let now = Date.now()
         if (now - this.lastClickTime < 300) {
-          if (this.zoomMoving) return
+          if (this.zoomMoving) {
+            // e.preventDefault()
+            return
+          }
           if (this.mutiZoom || this.zooming) {
             this.image.resetInit()
             this.zooming = false
@@ -274,7 +276,7 @@ export default class Viewer {
     const newHeight = naturalHeight * ratio
     const offsetWidth = newWidth - width
     const offsetHeight = newHeight - height
-    this.image.scale = Number((width / naturalWidth).toFixed(2))
+    this.image.scale = Number((newWidth / naturalWidth).toFixed(2))
 
     if (pointers) {
       // todo bugfix imageZoom.left image.left
@@ -289,9 +291,7 @@ export default class Viewer {
     this.image.height = newHeight
 
     // setStyle(this.image.el, {
-    //   width: this.image.width + 'px',
-    //   height: this.image.height + 'px',
-    //   transform: `translate3d(${this.image.left}px, ${this.image.top}px) scale(${ratio})`
+    //   transform: `translate3d(${this.image.left}px, ${this.image.top}px, 0) scale(${this.image.scale})`
     // })
     this.image.reset()
   }
@@ -420,8 +420,6 @@ export default class Viewer {
       return
     }
 
-    this.zoomMoving = false
-
     const {
       width: viewerWidth,
       height: viewerHeight
@@ -460,7 +458,7 @@ export default class Viewer {
     let distance = getDist(distanceX, distanceY)
 
     if (distance === 0) return
-    
+
     let speed = distance / (endTime - startTime) * 16.67
     let rate = Math.min(10, speed)
     let self = this
@@ -473,14 +471,14 @@ export default class Viewer {
       self.image.left -= moveX
       self.image.top -= moveY
 
-      if (self.image.left >= leftMax || self.image.left <= leftMin) {
-        self.image.left = Math.max(Math.min(self.image.left, leftMax), leftMin)
-        over = true
-      }
-      if (self.image.top >= topMax || self.image.top <= topMin) {
-        self.image.top = Math.max(Math.min(self.image.top, topMax), topMin)
-        over = true
-      }
+      // if (self.image.left >= leftMax || self.image.left <= leftMin) {
+      //   self.image.left = Math.max(Math.min(self.image.left, leftMax), leftMin)
+      //   over = true
+      // }
+      // if (self.image.top >= topMax || self.image.top <= topMin) {
+      //   self.image.top = Math.max(Math.min(self.image.top, topMax), topMin)
+      //   over = true
+      // }
       
       if (over) {
         addClass(self.image.el, 'viewer-image-zoom')
@@ -490,6 +488,7 @@ export default class Viewer {
       self.image.move(self.image.left, self.image.top)
       if (speed < 0.1) {
         speed = 0
+        self.zoomMoving = false
       } else {
         requestAnimationFrame(step)
       }

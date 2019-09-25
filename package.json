@@ -11,7 +11,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node ./examples/server.js",
     "commit": "git-cz",
-    "build": "rollup --config ./scripts/rollup.config.js"
+    "build": "node ./scripts/build.js"
   },
   "repository": {
     "type": "git",
@@ -38,7 +38,10 @@
     "express": "^4.17.1",
     "rimraf": "^2.6.3",
     "rollup": "^1.21.4",
+    "rollup-plugin-babel": "^4.3.3",
+    "rollup-plugin-postcss": "^2.0.3",
     "style-loader": "^0.23.1",
+    "terser": "^4.3.2",
     "ts-loader": "^6.0.4",
     "ts-node": "^8.3.0",
     "tslint": "^5.18.0",
@@ -48,6 +51,7 @@
     "typescript": "^3.5.3",
     "webpack": "^4.37.0",
     "webpack-dev-middleware": "^3.7.0",
-    "webpack-hot-middleware": "^2.25.0"
+    "webpack-hot-middleware": "^2.25.0",
+    "zlib": "^1.0.5"
   }
 }

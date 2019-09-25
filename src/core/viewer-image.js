@@ -85,6 +85,11 @@ export default class ViewerImage {
     wrap.appendChild(img)
     viewer.el.appendChild(wrap)
     this.el = img
+    // setStyle(this.el, {
+    //   width: this.width + 'px',
+    //   height: this.height + 'px',
+    //   transform: `translate3d(${this.left}px, ${this.top}, 0)`
+    // })
     this.reset()
     // addEventListener(img, 'click', this.onClick.bind(this))
   }
