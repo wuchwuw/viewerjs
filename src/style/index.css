@@ -62,3 +62,7 @@
   font-size: 20px;
   margin-left: auto;
 }
+
+.viewer-close::after {
+  content: '\00d7'
+}
