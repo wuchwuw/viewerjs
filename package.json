@@ -53,5 +53,8 @@
     "webpack-dev-middleware": "^3.7.0",
     "webpack-hot-middleware": "^2.25.0",
     "zlib": "^1.0.5"
+  },
+  "dependencies": {
+    "hammerjs": "^2.0.8"
   }
 }
